@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-generator
+  namespace: log-generator
+  labels:
+    app: log-generator
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: log-generator
+  template:
+    metadata:
+      labels:
+        app: log-generator
+    spec:
+      containers:
+        - name: log-generator
+          image: log-generator:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - -logsPerSecond=10
+            - -rampUp=true
+            - -rampUp.step=10
+            - -rampUp.interval=1s

@@ -1,0 +1,58 @@
+role: "Agent"
+serviceAccount:
+  create: true
+
+customConfig:
+  sources:
+    kubernetes_logs:
+      type: kubernetes_logs
+      extra_field_selector: "metadata.namespace=log-generator"
+      # The same value is used in Fluent Bit configuration by default
+      glob_minimum_cooldown_ms: 10000
+      namespace_annotation_fields:
+        namespace_labels: ""
+  transforms:
+    parser:
+      type: remap
+      inputs: [ kubernetes_logs ]
+      source: |
+        log_content = parse_json(.message) ?? .message
+        if is_object(log_content) {
+          del(.message)
+          . = merge(., log_content) ?? .
+        }
+  sinks:
+    vlogs:
+      type: http
+      inputs: [ parser ]
+      compression: zstd
+      uri: "http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/jsonline"
+      encoding:
+        codec: json
+      framing:
+        method: newline_delimited
+      request:
+        headers:
+          VL-Stream-Fields: collector,kubernetes.pod_name
+          VL-Extra-Fields: collector=vector
+
+service:
+  enabled: false
+
+resources:
+  requests:
+    cpu: '1'
+    memory: '1Gi'
+  limits:
+    cpu: '1'
+    memory: '1Gi'
+
+defaultVolumes:
+  - name: var-log
+    hostPath:
+      path: "/var/log/"
+
+defaultVolumeMounts:
+  - name: var-log
+    mountPath: "/var/log/"
+    readOnly: true

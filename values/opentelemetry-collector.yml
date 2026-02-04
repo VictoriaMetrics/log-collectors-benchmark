@@ -1,0 +1,63 @@
+mode: daemonset
+presets:
+  logsCollection:
+    enabled: true
+# This configuration is based on the default presets.logsCollection config with the following additions:
+# - Namespace filtering logic to process only specific namespaces
+# - JSON parsing support for structured log messages
+config:
+  exporters:
+    debug: { }
+    otlphttp:
+      logs_endpoint: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/opentelemetry/v1/logs
+      headers:
+        VL-Extra-Fields: collector=opentelemetry
+        VL-Stream-Fields: collector,k8s.pod.name
+
+  extensions:
+    health_check:
+      endpoint: ${env:MY_POD_IP}:13133
+  processors:
+    batch: { }
+    memory_limiter:
+      check_interval: 5s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+  receivers:
+    filelog:
+      include:
+        - /var/log/pods/log-generator_*/*/*.log
+      include_file_name: false
+      include_file_path: true
+      operators:
+        - id: container-parser
+          max_log_size: 102400
+          type: container
+        - type: json_parser
+          parse_from: body
+      retry_on_failure:
+        enabled: true
+      start_at: end
+  service:
+    extensions:
+      - health_check
+    pipelines:
+      logs:
+        exporters:
+          - otlphttp
+        processors:
+          - memory_limiter
+          - batch
+        receivers:
+          - filelog
+
+resources:
+  limits:
+    cpu: '1'
+    memory: '1Gi'
+  requests:
+    cpu: '1'
+    memory: '1Gi'
+
+image:
+  repository: 'otel/opentelemetry-collector-contrib'

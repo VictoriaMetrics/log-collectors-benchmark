@@ -1,0 +1,130 @@
+victoria-metrics-operator:
+  enabled: false
+  crds:
+    enabled: false
+  admissionWebhooks:
+    enabled: false
+defaultDashboards:
+  enabled: false
+defaultDatasources:
+  extra:
+    - name: VictoriaLogs
+      type: victoriametrics-logs-datasource
+      url: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428
+      uid: victoriametrics-logs-datasource
+vmsingle:
+  enabled: true
+vmcluster:
+  enabled: false
+alertmanager:
+  enabled: false
+vmalert:
+  enabled: false
+vmauth:
+  enabled: false
+vmagent:
+  enabled: true
+grafana:
+  enabled: true
+  plugins:
+    - victoriametrics-logs-datasource
+  adminPassword: admin
+  grafana.ini:
+    auth.anonymous:
+      enabled: true
+      org_role: Viewer
+prometheus-node-exporter:
+  enabled: true
+  service:
+    labels:
+      jobLabel: node-exporter
+  extraArgs:
+    - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.ignored-fs-types=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|erofs|sysfs|tracefs)$
+  vmScrape:
+    enabled: true
+kube-state-metrics:
+  enabled: true
+  vmScrape:
+    enabled: true
+    spec:
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: '{{ include "kube-state-metrics.name" (index .Subcharts "kube-state-metrics") }}'
+          app.kubernetes.io/instance: '{{ include "vm.release" . }}'
+      endpoints:
+        - port: http
+          honorLabels: true
+          metricRelabelConfigs:
+            - action: labeldrop
+              regex: (uid|container_id|image_id)
+      jobLabel: app.kubernetes.io/name
+
+kubelet:
+  enabled: true
+  vmScrapes:
+    cadvisor:
+      enabled: true
+    probes:
+      enabled: true
+    resources:
+      enabled: true
+    kubelet:
+      spec: {}
+  vmScrape:
+    kind: VMNodeScrape
+    spec:
+      scheme: "https"
+      honorLabels: true
+      interval: "30s"
+      scrapeTimeout: "5s"
+      tlsConfig:
+        insecureSkipVerify: true
+        caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+kubeApiServer:
+  enabled: true
+  vmScrape:
+    spec:
+      endpoints:
+        - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+          # bearerTokenSecret:
+          #   key: ""
+          port: https
+          scheme: https
+          tlsConfig:
+            caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            serverName: kubernetes
+      jobLabel: component
+      namespaceSelector:
+        matchNames:
+          - default
+      selector:
+        matchLabels:
+          component: apiserver
+          provider: kubernetes
+
+kubeControllerManager:
+  enabled: true
+  service:
+    enabled: true
+    port: 10257
+    targetPort: 10257
+    labels: {}
+    selector:
+      component: kube-controller-manager
+
+  vmScrape:
+    spec:
+      jobLabel: jobLabel
+      namespaceSelector:
+        matchNames: []
+      endpoints:
+        - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+          # bearerTokenSecret:
+          #   key: ""
+          port: http-metrics
+          scheme: https
+          tlsConfig:
+            caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+            serverName: kubernetes

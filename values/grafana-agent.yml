@@ -1,0 +1,52 @@
+agent:
+  mode: 'static'
+  configMap:
+    create: true
+    content: |
+      logs:
+        configs:
+        - name: default
+          positions:
+            filename: /tmp/positions.yaml
+          scrape_configs:
+            - job_name: kubernetes-logs
+              kubernetes_sd_configs:
+                - role: pod
+              pipeline_stages:
+                - cri: {}
+              relabel_configs:
+                - source_labels: [__meta_kubernetes_namespace]
+                  action: keep
+                  regex: log-generator
+                - source_labels: [__meta_kubernetes_pod_node_name]
+                  target_label: node_name
+                - source_labels: [__meta_kubernetes_namespace]
+                  target_label: namespace
+                - source_labels: [__meta_kubernetes_pod_name]
+                  target_label: pod
+                - source_labels: [__meta_kubernetes_container_name]
+                  target_label: container
+                - source_labels: 
+                    - __meta_kubernetes_pod_name
+                    - __meta_kubernetes_namespace
+                    - __meta_kubernetes_container_name
+                  separator: '_'
+                  target_label: __path__
+                  replacement: /var/log/containers/${1}*.log
+          clients:
+            - url: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/loki/api/v1/push?extra_fields=collector=grafana-agent&_stream_fields=collector,pod
+
+  resources:
+    limits:
+      cpu: '1'
+      memory: '1Gi'
+    requests:
+      cpu: '1'
+      memory: '1Gi'
+
+  mounts:
+    # -- Mount /var/log from the host into the container for log collection.
+    varlog: true
+    # -- Mount /var/lib/docker/containers from the host into the container for log
+    # collection.
+    dockercontainers: true

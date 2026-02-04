@@ -1,0 +1,131 @@
+# Configuration file from https://grafana.com/docs/alloy/latest/collect/logs-in-kubernetes/ with the following additions:
+# - Namespace filtering logic to process only specific namespaces
+# - JSON parsing support for structured log messages with sequence_id extraction to root level
+# - loki.source changed from "kubernetes" to "file" to avoid high network traffic
+# - Added stage.cri
+alloy:
+  resources:
+    limits:
+      cpu: '1'
+      memory: 1Gi
+    requests:
+      cpu: '1'
+      memory: 1Gi
+  configMap:
+    create: true
+    content: |
+      loki.write "pod_logs" {
+        endpoint {
+          url ="http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/loki/api/v1/push?extra_fields=collector=alloy&_stream_fields=collector,kubernetes.pod_name"
+        }
+      }
+
+      loki.process "process_logs" {
+        forward_to = [loki.write.pod_logs.receiver]
+  
+        stage.cri {}
+
+        stage.json {
+          expressions = {
+            "extracted_sequence_id" = "sequence_id",
+          }
+        }
+
+        stage.labels {
+          values = {
+            "sequence_id" = "extracted_sequence_id",
+          }
+        }
+      }
+
+      discovery.kubernetes "pod" {
+        role = "pod"
+        // Restrict to pods on the node to reduce cpu & memory usage
+        selectors {
+          role = "pod"
+          field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+        }
+        namespaces {
+          names = ["log-generator"]
+        }
+      }
+
+      loki.source.file "pod_logs" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.process.process_logs.receiver]
+      }
+
+      // discovery.relabel rewrites the label set of the input targets by applying one or more relabeling rules.
+      // If no rules are defined, then the input targets are exported as-is.
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pod.targets
+
+        // Label creation - "namespace" field from "__meta_kubernetes_namespace"
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          action = "replace"
+          target_label = "namespace"
+        }
+
+        // Label creation - "pod" field from "__meta_kubernetes_pod_name"
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          action = "replace"
+          target_label = "kubernetes.pod_name"
+        }
+
+        // Label creation - "container" field from "__meta_kubernetes_pod_container_name"
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          action = "replace"
+          target_label = "container"
+        }
+
+        // Label creation -  "app" field from "__meta_kubernetes_pod_label_app_kubernetes_io_name"
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+          action = "replace"
+          target_label = "app"
+        }
+
+        // Label creation -  "job" field from "__meta_kubernetes_namespace" and "__meta_kubernetes_pod_container_name"
+        // Concatenate values __meta_kubernetes_namespace/__meta_kubernetes_pod_container_name
+        rule {
+          source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+          action = "replace"
+          target_label = "job"
+          separator = "/"
+          replacement = "$1"
+        }
+
+        // Extract container hash from "__meta_kubernetes_pod_container_id"
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_id"]
+          action = "replace"
+          target_label = "__container_hash"
+          regex = "^\\S+:\\/\\/(.+)$"
+          replacement = "$1"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name", "__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+          action = "replace"
+          target_label = "__path__"
+          separator = "_"
+          replacement = "/var/log/containers/$1"
+        }
+
+        rule {
+          source_labels = ["__path__", "__container_hash"]
+          action = "replace"
+          target_label = "__path__"
+          separator = "-"
+          replacement = "$1$2.log"
+        }
+      }
+agent:
+  mounts:
+    varlog: true
+    dockercontainers: true
+    podlogs: true
+    kubernetes: true
