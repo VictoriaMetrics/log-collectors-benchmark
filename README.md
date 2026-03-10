@@ -1,25 +1,27 @@
 # Log Collectors Benchmark
 
-A benchmark suite for comparing log collectors shipping to VictoriaLogs,
-with log delivery verification.
+A benchmark suite for comparing log collectors, with log delivery verification.
 
-Beyond performance numbers, this tool continuously verifies that every log record
-is delivered exactly once - no losses, no duplicates. 
+Beyond performance numbers, this tool continuously verifies that every log record is delivered without losses.
 At VictoriaMetrics, we use it to ensure vlagent reliably delivers logs under any load.
+
+## Results
+
+TBA
 
 ## Overview
 
 Tested collectors:
 
-- [VictoriaLogs Agent](https://docs.victoriametrics.com/victorialogs/vlagent/) (vlagent) v1.47.0
-- Vector v0.53.0
-- Promtail v3.5.1
-- Grafana Alloy v1.13.2
-- Grafana Agent v0.44.2
-- Fluent Bit v4.2.3
-- OpenTelemetry Collector v0.146.1
-- Filebeat v9.3.1
-- Fluentd v1.19.1
+- [VictoriaLogs Agent](https://docs.victoriametrics.com/victorialogs/vlagent/) (vlagent) v1.48.0
+- [Vector](https://vector.dev/) v0.53.0
+- [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) v3.5.1
+- [Grafana Alloy](https://grafana.com/docs/alloy/latest/) v1.13.2
+- [Grafana Agent](https://grafana.com/docs/agent/latest/) v0.44.2
+- [Fluent Bit](https://fluentbit.io/) v4.2.3
+- [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) v0.146.1
+- [Filebeat](https://www.elastic.co/beats/filebeat) v9.3.1
+- [Fluentd](https://www.fluentd.org/) v1.19.1
 
 Runs in a local k8s cluster (using `kind`).
 
@@ -28,151 +30,6 @@ What is measured:
 - CPU and memory usage per collector.
 - Throughput.
 - Missing logs.
-- Duplicated logs.
-
-## Results
-
-### Maximum throughput
-
-Tested on Google Cloud `n2-highcpu-32` (32 vCPUs, 32 GiB Memory), single `kind` node.
-Each collector has 1 CPU and 1 GiB memory limit.
-
-| Collector               | Throughput (logs/sec) | Best scenario |
-|-------------------------|-----------------------|---------------|
-| vlagent                 | 169 230               | 50 Pods       |
-| Fluent Bit              | 41 179                | 10 Pods       |
-| Vector                  | 33 328                | 1 Pod         |
-| Grafana Agent           | 29 310                | 1 Pod         |
-| promtail                | 26 733                | 1 Pod         |
-| OpenTelemetry Collector | 24 003                | 1 Pod         |
-| Alloy                   | 21 082                | 1 Pod         |
-| fluentd                 | 8 980                 | 1 Pod         |
-| Filebeat                | 4 222                 | 200 Pods      |
-
-### Detailed results
-
-Load was increased linearly throughout the test,
-starting from a low rate and reaching the 180k logs/sec over ~1 hour.
-
-> **Note**: (*) 1 log-generator Pod cannot produce more than ~156k logs/sec because `containerd` becomes the bottleneck at high throughput.
-> Results for the 1 Pod scenario are therefore capped at this limit.
-
-| Pods  | Snapshot                                                                                  |
-|-------|-------------------------------------------------------------------------------------------|
-| 1 (*) | [view](https://snapshots.raintank.io/dashboard/snapshot/k24ug8P9sViCX6IA6EyEev6eOdvTivdL) |
-| 10    | [view](https://snapshots.raintank.io/dashboard/snapshot/nCy8El4VdDPmVHGlnr1VBj5IqImO86x8) |
-| 25    | [view](https://snapshots.raintank.io/dashboard/snapshot/fRlalVKgWPkd0T5hRquH4hK6QWBnf5Pn) |
-| 50    | [view](https://snapshots.raintank.io/dashboard/snapshot/xkUJikjTiNhKmTmQbSYLOzhNJx9jS0fn) |
-| 100   | [view](https://snapshots.raintank.io/dashboard/snapshot/kdDAHmDetCskfBRSQTvmOZDzDdb38uC5) |
-| 150   | [view](https://snapshots.raintank.io/dashboard/snapshot/KGMc0OEQnsDCxxcYme2nYVljZp76dx2B) |
-| 200   | [view](https://snapshots.raintank.io/dashboard/snapshot/aJeEmSXeynQbFifrlXwrdNvONJo4yXsk) |
-
-We do not measure results for more than 200 Pods, since it is [recommended to keep 110 Pods per node](https://kubernetes.io/docs/setup/best-practices/cluster-large/).
-
-## How does it work?
-
-1. log-generator - generates JSON logs.
-2. Log collector - tail logs from log-generator Pods, ship to VictoriaLogs.
-3. VictoriaLogs - stores all logs.
-4. log-verifier - checks VictoriaLogs for missing/duplicate logs, exposes metrics.
-5. VictoriaMetrics - stores metrics; vmagent - collects CPU/RAM metrics of containers and metrics from log-verifier.
-6. Grafana - displays metrics and resource usage.
-
-Simplified diagram:
-
-<img src="how-does-it-work.svg" alt="how-does-it-work">
-
-## Prerequisites
-
-- Docker
-- kubectl
-- [`kind`](https://kind.sigs.k8s.io/)
-- helm
-- make
-
-## Quick Start
-
-Test all collectors:
-
-```sh
-make bench-up-all
-```
-
-What it does:
-
-1. Creates kind cluster.
-2. Builds log-generator and log-verifier images.
-3. Deploys VictoriaLogs Single.
-4. Deploys VictoriaMetrics + Grafana.
-5. Deploys all collectors.
-6. Starts log-generator Pods.
-7. Runs log-verifier.
-8. Follow [Monitoring](#monitoring) instructions to see results in Grafana.
-
-**Recommended**: Run collectors individually to avoid disk I/O bottlenecks on the host machine.
-See [Test individual collector](#test-individual-collector).
-
-## Test individual collector
-
-Prepare `kind` cluster, deploy VictoriaMetrics, VictoriaLogs, log-generator, log-verifier, and Grafana:
-
-```sh
-make bench-prepare           
-```
-
-Deploy collector:
-
-```sh
-make bench-up-vlagent        # VictoriaLogs Agent
-make bench-up-vector         # Vector
-make bench-up-promtail       # Promtail
-make bench-up-alloy          # Grafana Alloy
-make bench-up-grafana-agent  # Grafana Agent
-make bench-up-fluent-bit     # Fluent Bit
-make bench-up-otel-collector # OpenTelemetry Collector
-make bench-up-filebeat       # Filebeat
-make bench-up-fluentd        # Fluentd
-```
-
-Run load generator:
-
-```sh
-make bench-up-generator
-```
-
-## Configuration
-
-### Log Generator
-
-Generates JSON logs with:
-
-- Timestamp (nanosecond precision).
-- Sequence ID (for verification).
-- Log level (DEBUG/INFO/WARN/ERROR).
-- Component name.
-- HTTP method, status code.
-- Duration, user ID, bytes.
-- Environment, region, trace ID.
-
-Change the log generation rate via `-logsPerSecond` flag in `log-generator/deployment.yml`.
-
-To gradually increase the load over time, use ramp-up flags:
-
-- `-rampUp` - enable gradual load increase.
-- `-rampUp.step` - logs per second to add at each step.
-- `-rampUp.interval` - how often to increase the load (minimum 1 second).
-
-Example: start at 100 logs/sec and increase by 500 every 2 minutes:
-
-```sh
-./log-generator -logsPerSecond=100 -rampUp=true -rampUp.step=500 -rampUp.interval=2m
-```
-
-### Collectors
-
-All collectors read logs from `/var/log/pods` or `/var/log/containers`, parse content where possible, and ship to
-VictoriaLogs at:
-`http://vls-victoria-logs-single-server.monitoring.svc.cluster.local:9428/insert/<protocol>`
 
 Collectors are configured to compress request bodies to reduce network traffic
 and better emulate production environments.
@@ -191,7 +48,152 @@ No heavy tuning is applied to ensure fair comparison, including:
 All collectors have identical resource requests and limits (1 CPU, 1 GiB memory) for fair comparison
 and reduce the chance of CPU/RAM contention when running multiple collectors simultaneously.
 
-## Monitoring
+Since it's challenging to configure all collectors to use identical log formats,
+each collector may produce different output formats.
+
+## How does it work?
+
+1. log-generator - generates JSON logs.
+2. Log collector - tails logs from log-generator Pods, ships to log-verifier.
+3. log-verifier - receives logs directly from collectors, exposes delivery metrics.
+4. VictoriaMetrics - stores metrics; vmagent - collects CPU/RAM metrics of containers and metrics from log-verifier.
+5. Grafana - displays metrics and resource usage.
+
+Simplified diagram:
+
+<img src="how-does-it-work.svg" alt="how-does-it-work">
+
+### Verification
+
+log-verifier implements a VictoriaLogs-compatible insert API,
+so collectors ship logs directly to it without any additional configuration.
+
+Each log produced by log-generator contains:
+
+- `sequence_id` - a unique, monotonically increasing integer per Pod.
+- `generated_at` - nanosecond timestamp of when the log was produced.
+
+For each collector + Pod pair, log-verifier tracks:
+
+- The maximum observed `sequence_id` (`log_verifier_max_sequence_id`).
+- Total number of received logs (`log_verifier_logs_total`).
+- End-to-end delivery latency (difference between `generated_at` and the time log-verifier received the log).
+
+Since `sequence_id` starts at 1 and increments strictly by 1 for each log, the number of lost logs is:
+
+```
+sum(log_verifier_max_sequence_id - log_verifier_logs_total) by (collector)
+```
+
+> Note: The formula is valid as long as log-generator Pods are not restarted with the same name.
+> A restart resets sequence_id to 1 while log_verifier_max_sequence_id retains its previous maximum,
+> making the loss count invalid for that Pod. Deleting or replacing a Pod with a new name is fine.
+
+All exposed metrics:
+
+| Metric                                                                | Description                                            |
+|-----------------------------------------------------------------------|--------------------------------------------------------|
+| `log_verifier_max_sequence_id{collector, log_generator_pod}`          | Highest sequence ID received from a given Pod          |
+| `log_verifier_logs_total{collector, log_generator_pod}`               | Total logs received from a given Pod                   |
+| `log_verifier_delivery_latency_seconds{collector, log_generator_pod}` | End-to-end delivery latency histogram                  |
+| `log_verifier_malformed_logs_total{collector, reason}`                | Logs dropped due to missing or invalid required fields |
+
+These metrics are scraped by vmagent and visualized in Grafana.
+
+## Prerequisites
+
+- Docker
+- kubectl
+- [`kind`](https://kind.sigs.k8s.io/)
+- helm
+- make
+
+## Quick Start
+
+Test all collectors:
+
+```sh
+make bench-up-all
+```
+
+Access Grafana dashboard:
+
+```sh
+kubectl port-forward -n monitoring svc/vms-grafana 3000:80
+```
+
+Visit http://localhost:3000 and find the `Log Collectors Benchmark` dashboard.
+
+After the test completes (all collectors started losing logs), stop the generator:
+
+```sh
+make bench-down-generator
+```
+
+## Advanced Setup
+
+Follow these steps in order for each benchmark run.
+
+### 1. (Optional) Switch to VictoriaLogs as the backend
+
+By default, collectors ship logs directly to log-verifier. If you want to store logs in VictoriaLogs instead:
+
+```sh
+make set-endpoint VLS_HOST=victoria-logs-host VLS_PORT=9428
+```
+
+This rewrites the destination host and port across all collector configuration files at once.
+
+> **Note**: When using VictoriaLogs as the backend, log-verifier no longer receives logs directly,
+> so delivery metrics (`log_verifier_*`) will not be available in Grafana.
+
+### 2. Deploy monitoring stack
+
+Creates the `kind` cluster, deploys VictoriaMetrics, vmagent, log-verifier, and Grafana:
+
+```sh
+make bench-up-monitoring
+```
+
+### 3. Deploy collectors
+
+```sh
+make bench-up-collectors
+```
+
+> **Note**: Some collector images (e.g. Fluentd, Filebeat) are several gigabytes in size.
+> The first run may take a while depending on your network speed.
+
+To deploy a single collector instead:
+
+```sh
+make bench-up-vlagent        # VictoriaLogs Agent
+make bench-up-vector         # Vector
+make bench-up-promtail       # Promtail
+make bench-up-alloy          # Grafana Alloy
+make bench-up-grafana-agent  # Grafana Agent
+make bench-up-fluent-bit     # Fluent Bit
+make bench-up-otel-collector # OpenTelemetry Collector
+make bench-up-filebeat       # Filebeat
+make bench-up-fluentd        # Fluentd
+```
+
+### 4. Start log generator
+
+```sh
+make bench-up-generator RAMP_UP_STEP=5 RAMP_UP_STEP_INTERVAL=1s GENERATOR_REPLICAS=10
+```
+
+It will start 10 log-generator Pods.
+Each will produce 5*10 logs/sec, and gradually increase by 5 logs/sec every second, independently per replica.
+
+| Variable                | Default | Description                          |
+|-------------------------|---------|--------------------------------------|
+| `GENERATOR_REPLICAS`    | `10`    | Number of log-generator Pod replicas |
+| `RAMP_UP_STEP`          | `5`     | Logs/sec added at each ramp-up step  |
+| `RAMP_UP_STEP_INTERVAL` | `1s`    | How often to increase the load       |
+
+### 5. Access Grafana dashboard
 
 A Grafana dashboard is provisioned automatically during setup.
 It visualizes collector performance, resource usage, and log delivery quality.
@@ -204,43 +206,38 @@ kubectl port-forward -n monitoring svc/vms-grafana 3000:80
 
 Navigate to http://localhost:3000 (credentials: `admin`/`admin`).
 
-### Query VictoriaLogs
+### 6. Stop log generator
 
-Access VictoriaLogs Web UI:
-
-```sh
-kubectl port-forward -n monitoring svc/vls-victoria-logs-single-server 9428:9428
-```
-
-Navigate to http://localhost:9428 or query via API:
+After the test completes (all collectors started losing logs), stop the generator:
 
 ```sh
-curl -X POST 'http://localhost:9428/select/logsql/query' \
-  --data-urlencode 'query=_time:5m collector:="vlagent"'
+make bench-down-generator
 ```
 
-## Verification
+### 7. Change the load
 
-log-verifier validates log delivery by tracking sequence IDs in logs generated by log-generator.
-Each log contains a unique, monotonically increasing sequence ID (field `sequence_id`).
-
-The verification process runs every 20 seconds and queries VictoriaLogs for logs from a 1-minute time window that
-occurred 1 minute in the past.
-This 1-minute delay accounts for collectors that may deliver logs with latency.
-
-The verifier discovers active collectors and log-generator Pods, fetches logs from VictoriaLogs for the delayed time
-window, and analyzes each collector-pod pair.
-It extracts sequence IDs, verifies monotonic ordering, detects gaps indicating missed logs, and identifies duplicate
-sequence IDs.
-All findings are exposed as Prometheus metrics for monitoring (see [Monitoring](#monitoring)).
-
-## Cleanup
+To change the load, uninstall the existing log-generator, collectors,
+and restart log-verifier to reset delivery metrics:
 
 ```sh
-make bench-down
+make bench-down-generator
+make bench-down-collectors
+kubectl rollout restart -n monitoring deployment/log-verifier
 ```
 
-## Notes
+Wait a few minutes to separate different benchmarks from each other.
+Deploy new collectors and log-generator Pods with the desired load:
 
-- Since it's challenging to configure all collectors to use identical log formats,
-  each collector may produce different output formats.
+```sh
+make bench-up-collectors
+
+make bench-up-generator RAMP_UP_STEP=1 RAMP_UP_STEP_INTERVAL=2s GENERATOR_REPLICAS=100
+```
+
+### 8. Clean up
+
+This command deletes the `kind` cluster and all deployed resources, including the benchmark results:
+
+```sh
+make bench-down-all
+```

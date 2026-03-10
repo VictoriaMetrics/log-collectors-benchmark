@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-verifier
+  namespace: monitoring
+  labels:
+    app: log-verifier
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-verifier
+  template:
+    metadata:
+      labels:
+        app: log-verifier
+    spec:
+      containers:
+        - name: log-verifier
+          image: log-verifier:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-verifier
+  namespace: monitoring
+spec:
+  selector:
+    app: log-verifier
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+---
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMPodScrape
+metadata:
+  name: log-verifier
+  namespace: monitoring
+spec:
+  namespaceSelector:
+    any: true
+  podMetricsEndpoints:
+    - port: http
+      scheme: http
+      interval: 10s
+  selector:
+    matchLabels:
+      app: log-verifier

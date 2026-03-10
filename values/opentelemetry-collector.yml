@@ -9,7 +9,7 @@ config:
   exporters:
     debug: { }
     otlphttp:
-      logs_endpoint: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/opentelemetry/v1/logs
+      logs_endpoint: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/opentelemetry/v1/logs
       headers:
         VL-Extra-Fields: collector=opentelemetry
         VL-Stream-Fields: collector,k8s.pod.name

@@ -1,5 +1,5 @@
 remoteWrite:
-  - url: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/jsonline
+  - url: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/jsonline
     # Use jsonline format instead of the native VictoriaLogs format for fair comparison with other collectors.
     # The native format offers approximately 20% lower CPU usage.
     format: jsonline

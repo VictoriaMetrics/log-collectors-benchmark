@@ -10,7 +10,7 @@ defaultDatasources:
   extra:
     - name: VictoriaLogs
       type: victoriametrics-logs-datasource
-      url: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428
+      url: http://log-verifier.monitoring.svc.cluster.local.:8080
       uid: victoriametrics-logs-datasource
 vmsingle:
   enabled: true

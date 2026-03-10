@@ -29,12 +29,9 @@ daemonset:
             - decode_json_fields:
                 fields: ["message"]
                 target: ""
-            # Removes the original 'message' field
-            - drop_fields:
-                fields: ["message"] 
       output.elasticsearch:
         host: '${NODE_NAME}'
-        hosts: ['vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/elasticsearch']
+        hosts: ['log-verifier.monitoring.svc.cluster.local.:8080/insert/elasticsearch']
         compression_level: 1
         parameters:
           extra_fields: 'collector=filebeat'

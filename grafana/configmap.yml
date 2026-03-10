@@ -11,6 +11,23 @@ data:
       "annotations": {
         "list": [
           {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${datasource}"
+            },
+            "enable": true,
+            "hide": false,
+            "iconColor": "super-light-blue",
+            "mappings": {},
+            "name": "generators_count_changed",
+            "target": {
+              "expr": "changes(sum(kube_pod_info{namespace=\"log-generator\"} or vector(0))) > 0",
+              "interval": "",
+              "refId": "Anno"
+            },
+            "titleFormat": "Generator Pod count changed"
+          },
+          {
             "builtIn": 1,
             "datasource": {
               "type": "datasource",
@@ -32,85 +49,21 @@ data:
       },
       "editable": true,
       "fiscalYearStartMonth": 0,
-      "graphTooltip": 0,
+      "graphTooltip": 1,
       "id": 1,
       "links": [],
       "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 4,
-            "w": 2,
-            "x": 0,
-            "y": 0
-          },
-          "id": 69,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "percentChangeColorMode": "standard",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "showPercentChange": false,
-            "textMode": "auto",
-            "wideLayout": true
-          },
-          "pluginVersion": "12.3.3",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "expr": "sum(kube_pod_info{namespace=\"log-generator\"})",
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Generator Pods",
-          "type": "stat"
-        },
         {
           "collapsed": false,
           "gridPos": {
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 4
+            "y": 0
           },
           "id": 65,
           "panels": [],
-          "title": "Log verifier",
+          "title": "Throughput",
           "type": "row"
         },
         {
@@ -118,7 +71,7 @@ data:
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "description": "Shows the rate of logs inserted per second, calculated over the previous 1-minute window.",
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -141,13 +94,13 @@ data:
                   "viz": false
                 },
                 "insertNulls": false,
-                "lineInterpolation": "linear",
+                "lineInterpolation": "smooth",
                 "lineWidth": 1,
                 "pointSize": 5,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "auto",
+                "showPoints": "never",
                 "showValues": false,
                 "spanNulls": false,
                 "stacking": {
@@ -165,21 +118,41 @@ data:
                   {
                     "color": "green",
                     "value": 0
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "load generators"
+                },
+                "properties": [
+                  {
+                    "id": "custom.axisPlacement",
+                    "value": "right"
                   },
                   {
-                    "color": "red",
-                    "value": 80
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "dash": [
+                        10,
+                        10
+                      ],
+                      "fill": "dash"
+                    }
                   }
                 ]
               }
-            },
-            "overrides": []
+            ]
           },
           "gridPos": {
-            "h": 10,
-            "w": 12,
+            "h": 8,
+            "w": 24,
             "x": 0,
-            "y": 5
+            "y": 1
           },
           "id": 64,
           "options": {
@@ -209,124 +182,34 @@ data:
               "editorMode": "code",
               "expr": "sum(rate(log_verifier_logs_total[$__rate_interval])) by (collector)",
               "instant": false,
-              "interval": "1m",
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Logs ingestion rate (previous 1m window)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "This graph tracks the number of logs that failed to arrive within the previous one-minute window, accounting for both permanent data loss and ingestion delays. ",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "custom": {
-                "axisPlacement": "auto",
-                "fillOpacity": 55,
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineWidth": 0,
-                "spanNulls": false
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "transparent",
-                    "value": 0
-                  },
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 1e-9
-                  },
-                  {
-                    "color": "orange",
-                    "value": 0.25
-                  },
-                  {
-                    "color": "red",
-                    "value": 0.5
-                  },
-                  {
-                    "color": "semi-dark-red",
-                    "value": 0.75
-                  },
-                  {
-                    "color": "dark-red",
-                    "value": 1
-                  }
-                ]
-              },
-              "unit": "percentunit"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 12,
-            "y": 5
-          },
-          "id": 68,
-          "options": {
-            "alignValue": "left",
-            "legend": {
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": false
-            },
-            "mergeValues": true,
-            "rowHeight": 0.9,
-            "showValue": "never",
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "12.3.3",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "exemplar": false,
-              "expr": "# Loss rate per collector, clamped to [0, 1].\n# Falls back to 1 if the verifier has no data (unhealthy).\nclamp_max(\n  sum(rate(log_verifier_missed_logs_total[$__rate_interval])) by (collector)\n  /\n  sum(rate(log_verifier_logs_total[$__rate_interval])) by (collector), 1)\nor\n(1 - max(log_verifier_healthy) by (collector))",
-              "instant": false,
               "interval": "",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Logs Lost or Delayed (previous 1m window)",
-          "type": "state-timeline"
+          "title": "Logs ingestion rate",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {
+            "h": 1,
+            "w": 24,
+            "x": 0,
+            "y": 9
+          },
+          "id": 74,
+          "panels": [],
+          "title": "Quality",
+          "type": "row"
         },
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
+          "description": "Time between log generation and receipt by the destination (99th percentile).",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -349,13 +232,13 @@ data:
                   "viz": false
                 },
                 "insertNulls": false,
-                "lineInterpolation": "linear",
+                "lineInterpolation": "smooth",
                 "lineWidth": 1,
                 "pointSize": 5,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "auto",
+                "showPoints": "never",
                 "showValues": false,
                 "spanNulls": false,
                 "stacking": {
@@ -379,26 +262,29 @@ data:
                     "value": 80
                   }
                 ]
-              }
+              },
+              "unit": "s"
             },
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 12,
             "x": 0,
-            "y": 15
+            "y": 10
           },
-          "id": 67,
+          "id": 75,
           "options": {
             "legend": {
               "calcs": [
-                "sum"
+                "min",
+                "max",
+                "mean"
               ],
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Total",
+              "sortBy": "Max",
               "sortDesc": true
             },
             "tooltip": {
@@ -415,13 +301,327 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(increase(log_verifier_duplicated_logs_total[$__rate_interval])) by (collector)",
+              "expr": "histogram_quantile(0.99, sum(rate(log_verifier_delivery_latency_seconds_bucket[$__rate_interval])) by (vmrange, collector))",
+              "interval": "30s",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Duplicated logs",
+          "title": "Delivery latency P99",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "Total number of lost logs per collector, calculated as the difference between \nthe expected log count (max sequence_id) and the actual delivered count. \nAggregated across all log_generator_pod instances.\n\nOnly successfully parsed logs are counted. Logs dropped due to being malformed are not included in this metric - see the \"Malformed logs (total)\" panel for details.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 10
+          },
+          "id": 76,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "sum(log_verifier_max_sequence_id - log_verifier_logs_total) by (collector)",
+              "instant": false,
+              "interval": "30s",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Log loss by collector (total)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "How many logs each collector is behind the fastest collector for the same generator Pod.\nCalculated as:\n\nmax(seq_id across all collectors) - collector's current seq_id.\n\nA growing value means the collector is falling behind the generation rate.\nA low value means either the collector is keeping up, or it is dropping logs\nand advancing seq_id without actually delivering them.\nCheck \"Log loss by collector (total)\" to distinguish between the two cases.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 18
+          },
+          "id": 73,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Last *",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "# Sequence lag: how many logs each collector is behind the fastest collector for the same generator pod. \n# If vlagent is at seq 10000 and vector is at 500,\n# vector's lag is 9500.\nsum by (collector) (\n    # For each generator pod, find the maximum seq_id across all collectors.\n    max by (log_generator_pod) (log_verifier_max_sequence_id)\n    - on(log_generator_pod) group_right()\n    max by (log_generator_pod, collector) (log_verifier_max_sequence_id)\n)",
+              "interval": "30s",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Delivery lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "Cumulative count of logs received by the verifier with missing required fields:\nsequence_id, generated_at, or Pod name.\nA non-zero value indicates that the collector is capable of delivering malformed logs.\n\nCommon causes: CPU throttling, improper log rotation handling, or incorrect Pod metadata caching.",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 18
+          },
+          "id": 70,
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Name",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(log_verifier_malformed_logs_total) by (collector, reason) > 0",
+              "interval": "30s",
+              "legendFormat": "{{collector}}: {{reason}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Malformed logs (total)",
           "type": "timeseries"
         },
         {
@@ -430,7 +630,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 25
+            "y": 26
           },
           "id": 66,
           "panels": [],
@@ -521,23 +721,19 @@ data:
             ]
           },
           "gridPos": {
-            "h": 10,
+            "h": 9,
             "w": 24,
             "x": 0,
-            "y": 26
+            "y": 27
           },
           "id": 29,
           "options": {
             "legend": {
-              "calcs": [
-                "min",
-                "max",
-                "mean"
-              ],
+              "calcs": [],
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Name",
               "sortDesc": true
             },
             "tooltip": {
@@ -556,7 +752,7 @@ data:
               "editorMode": "code",
               "exemplar": true,
               "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"collectors\",container!~\"(config-reloader|)\",image!=\"\"}[$__rate_interval])) by(image)",
-              "interval": "1m",
+              "interval": "30s",
               "legendFormat": "{{ image }}",
               "range": true,
               "refId": "A"
@@ -661,7 +857,7 @@ data:
             ]
           },
           "gridPos": {
-            "h": 10,
+            "h": 9,
             "w": 24,
             "x": 0,
             "y": 36
@@ -670,14 +866,13 @@ data:
           "options": {
             "legend": {
               "calcs": [
-                "min",
                 "max",
-                "mean"
+                "lastNotNull"
               ],
               "displayMode": "table",
               "placement": "right",
               "showLegend": true,
-              "sortBy": "Mean",
+              "sortBy": "Last *",
               "sortDesc": true
             },
             "tooltip": {
@@ -695,9 +890,9 @@ data:
               },
               "editorMode": "code",
               "exemplar": true,
-              "expr": "sum(container_memory_working_set_bytes{namespace=\"collectors\",container!~\"(config-reloader|)\",image!=\"\"}) by(image)",
-              "interval": "1m",
-              "legendFormat": "{{ container }}",
+              "expr": "max_over_time(container_memory_rss{namespace=\"collectors\",container!~\"(config-reloader|)\",image!=\"\"})",
+              "interval": "30s",
+              "legendFormat": "{{ image }}",
               "range": true,
               "refId": "A"
             },
@@ -774,10 +969,6 @@ data:
                   {
                     "color": "green",
                     "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               },
@@ -786,10 +977,10 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 12,
             "x": 0,
-            "y": 46
+            "y": 45
           },
           "id": 59,
           "options": {
@@ -819,13 +1010,250 @@ data:
               "editorMode": "code",
               "exemplar": true,
               "expr": "sum(rate(container_cpu_cfs_throttled_seconds_total{namespace=\"collectors\",container!~\"(config-reloader|)\",image!=\"\"}[$__rate_interval])) by(container,cluster)",
-              "interval": "1m",
+              "interval": "30s",
               "legendFormat": "{{ container }}",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "CPU Throttled seconds by container",
+          "title": "CPU throttle rate by container",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "fixedColor": "blue",
+                "mode": "palette-classic",
+                "seriesBy": "last"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.3,
+                "drawStyle": "bars",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "smooth",
+                "lineStyle": {
+                  "fill": "solid"
+                },
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": 0
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/.*: CrashLoopBackOff$/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 45
+          },
+          "id": 61,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Name",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "12.3.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "changes(kube_pod_container_status_restarts_total{namespace=\"collectors\"}\n* on(pod, container, namespace) group_left(reason)\nkube_pod_container_status_last_terminated_reason{namespace=\"collectors\"}) > 0",
+              "interval": "",
+              "legendFormat": "{{ container }}: {{reason}}",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "kube_pod_container_status_waiting_reason{reason=\"CrashLoopBackOff\", namespace=\"collectors\"} > 0",
+              "hide": false,
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{container}}: CrashLoopBackOff",
+              "range": true,
+              "refId": "B"
+            }
+          ],
+          "title": "Container Restarts",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "showValues": false,
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": 0
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 53
+          },
+          "id": 63,
+          "options": {
+            "legend": {
+              "calcs": [
+                "max",
+                "mean"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Mean",
+              "sortDesc": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.3.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(container_file_descriptors{namespace=\"collectors\",container!~\"(config-reloader|)\",image!=\"\"}) by (container)",
+              "interval": "30s",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "File Descriptors",
           "type": "timeseries"
         },
         {
@@ -890,24 +1318,18 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 12,
             "x": 12,
-            "y": 46
+            "y": 53
           },
-          "id": 63,
+          "id": 77,
           "options": {
             "legend": {
-              "calcs": [
-                "min",
-                "max",
-                "mean"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Mean",
-              "sortDesc": true
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
             },
             "tooltip": {
               "hideZeros": false,
@@ -923,137 +1345,13 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "sum(container_file_descriptors{namespace=\"collectors\",container!~\"(config-reloader|)\",image!=\"\"}) by (container)",
-              "interval": "1m",
+              "expr": "sum(kube_pod_info{namespace=\"log-generator\"})",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "File Descriptors",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "fixedColor": "blue",
-                "mode": "thresholds"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "Percent",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 25,
-                "gradientMode": "opacity",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "smooth",
-                "lineStyle": {
-                  "fill": "solid"
-                },
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "area"
-                }
-              },
-              "mappings": [],
-              "max": 1,
-              "min": 0,
-              "thresholds": {
-                "mode": "percentage",
-                "steps": [
-                  {
-                    "color": "red",
-                    "value": 0
-                  },
-                  {
-                    "color": "yellow",
-                    "value": 20
-                  },
-                  {
-                    "color": "green",
-                    "value": 30
-                  },
-                  {
-                    "color": "#EAB839",
-                    "value": 70
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 0,
-            "y": 56
-          },
-          "id": 61,
-          "options": {
-            "legend": {
-              "calcs": [
-                "sum"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true,
-              "sortBy": "Total",
-              "sortDesc": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "pluginVersion": "12.3.3",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "exemplar": true,
-              "expr": "max(increase(kube_pod_container_status_restarts_total{namespace=\"collectors\",container!~\"(config-reloader|)\"})) by(container)",
-              "interval": "",
-              "legendFormat": "{{ container }}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Container Restarts",
+          "title": "Log generator Pods count",
           "type": "timeseries"
         },
         {
@@ -1062,7 +1360,7 @@ data:
             "h": 1,
             "w": 24,
             "x": 0,
-            "y": 66
+            "y": 61
           },
           "id": 45,
           "panels": [],
@@ -1132,10 +1430,10 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 10,
+            "h": 9,
             "w": 24,
             "x": 0,
-            "y": 67
+            "y": 62
           },
           "id": 31,
           "options": {
@@ -1165,7 +1463,7 @@ data:
               "editorMode": "code",
               "exemplar": true,
               "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"collectors\"}[$__rate_interval])) by(pod)",
-              "interval": "1m",
+              "interval": "30s",
               "legendFormat": "Received {{pod}}",
               "range": true,
               "refId": "A"
@@ -1178,245 +1476,17 @@ data:
               "editorMode": "code",
               "exemplar": true,
               "expr": "0 - sum(rate(container_network_transmit_bytes_total{namespace=\"collectors\"}[$__rate_interval])) by(pod)",
-              "interval": "1m",
+              "interval": "30s",
               "legendFormat": "Transmitted {{pod}}",
               "range": true,
               "refId": "B"
             }
           ],
-          "title": "Network - Bandwidth",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 25,
-                "gradientMode": "opacity",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "smooth",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "pps"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 0,
-            "y": 77
-          },
-          "id": 36,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "12.3.3",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "exemplar": true,
-              "expr": "sum(rate(container_network_receive_packets_dropped_total{namespace=\"collectors\"}[$__rate_interval])) by(cluster)",
-              "interval": "",
-              "legendFormat": "Received",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "exemplar": true,
-              "expr": "0 - sum(rate(container_network_transmit_packets_dropped_total{namespace=\"collectors\"}[$__rate_interval])) by(cluster)",
-              "interval": "",
-              "legendFormat": "Transmitted",
-              "range": true,
-              "refId": "B"
-            }
-          ],
-          "title": "Network - Packets Dropped",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisBorderShow": false,
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "barWidthFactor": 0.6,
-                "drawStyle": "line",
-                "fillOpacity": 25,
-                "gradientMode": "opacity",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "insertNulls": false,
-                "lineInterpolation": "smooth",
-                "lineWidth": 2,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "never",
-                "showValues": false,
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": 0
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "pps"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 10,
-            "w": 12,
-            "x": 12,
-            "y": 77
-          },
-          "id": 37,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "hideZeros": false,
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "pluginVersion": "12.3.3",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "exemplar": true,
-              "expr": "sum(rate(container_network_receive_errors_total{namespace=\"collectors\"}[$__rate_interval])) by(cluster)",
-              "interval": "",
-              "legendFormat": "Received",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
-              },
-              "editorMode": "code",
-              "exemplar": true,
-              "expr": "0 - sum(rate(container_network_transmit_errors_total{namespace=\"$namespace\"}[$__rate_interval])) by(cluster)",
-              "interval": "",
-              "legendFormat": "Transmitted",
-              "range": true,
-              "refId": "B"
-            }
-          ],
-          "title": "Network - Errors",
+          "title": "Network - bandwidth",
           "type": "timeseries"
         }
       ],
-      "preload": false,
+      "preload": true,
       "refresh": "30s",
       "schemaVersion": 42,
       "tags": [],
@@ -1433,18 +1503,6 @@ data:
             "refresh": 1,
             "regex": "",
             "type": "datasource"
-          },
-          {
-            "current": {
-              "text": "VictoriaLogs",
-              "value": "victoriametrics-logs-datasource"
-            },
-            "name": "VictoriaLogs",
-            "options": [],
-            "query": "victoriametrics-logs-datasource",
-            "refresh": 1,
-            "regex": "",
-            "type": "datasource"
           }
         ]
       },
@@ -1452,7 +1510,15 @@ data:
         "from": "now-1h",
         "to": "now"
       },
-      "timepicker": {},
+      "timepicker": {
+        "refresh_intervals": [
+          "5s",
+          "10s",
+          "30s",
+          "1m",
+          "5m"
+        ]
+      },
       "timezone": "utc",
       "title": "Log collectors benchmark",
       "uid": "log_collectors_benchmark",

@@ -3,7 +3,7 @@ daemonset:
 config:
   enabled: true
   clients:
-    - url: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/loki/api/v1/push?extra_fields=collector=promtail&_stream_fields=collector,kubernetes.pod_name
+    - url: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/loki/api/v1/push?extra_fields=collector=promtail&_stream_fields=collector,kubernetes.pod_name
   positions:
     filename: /run/promtail/positions.yaml
   enableTracing: false

@@ -95,7 +95,7 @@ var traceIDs = []string{"trace-a1b2c3d4", "trace-e5f6g7h8", "trace-i9j0k1l2", "t
 var protocols = []string{"HTTP/1.1", "HTTP/2", "gRPC", "WebSocket"}
 
 func generateLog(current time.Time) {
-	buf = append(buf, `{"_time":`...)
+	buf = append(buf, `{"generated_at":`...)
 	buf = strconv.AppendInt(buf, current.UnixNano(), 10)
 
 	buf = append(buf, `,"_msg":"`...)

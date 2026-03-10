@@ -6,7 +6,7 @@ metadata:
   labels:
     app: log-generator
 spec:
-  replicas: 10
+  replicas: $GENERATOR_REPLICAS
   selector:
     matchLabels:
       app: log-generator
@@ -22,5 +22,5 @@ spec:
           args:
             - -logsPerSecond=10
             - -rampUp=true
-            - -rampUp.step=10
-            - -rampUp.interval=1s
+            - -rampUp.step=$RAMP_UP_STEP
+            - -rampUp.interval=$RAMP_UP_STEP_INTERVAL

@@ -40,8 +40,8 @@ config:
     [OUTPUT]
         Name http
         Match kube.*
-        host vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.
-        port 9428
+        host log-verifier.monitoring.svc.cluster.local.
+        port 8080
         compress gzip
         uri /insert/jsonline
         format json_lines

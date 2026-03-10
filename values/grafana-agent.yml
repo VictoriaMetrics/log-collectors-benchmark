@@ -34,7 +34,7 @@ agent:
                   target_label: __path__
                   replacement: /var/log/containers/${1}*.log
           clients:
-            - url: http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/loki/api/v1/push?extra_fields=collector=grafana-agent&_stream_fields=collector,pod
+            - url: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/loki/api/v1/push?extra_fields=collector=grafana-agent&_stream_fields=collector,pod
 
   resources:
     limits:

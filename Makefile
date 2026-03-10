@@ -1,86 +1,97 @@
-VLS_HOST ?= vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.
-VLS_PORT ?= 9428
+bench-up-all: bench-up-monitoring bench-up-collectors bench-up-generator
 
-set-endpoint:
-	grep -rl "vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local." --include "*.yml" ./ \
-      | xargs sed -i 's|vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.|$(VLS_HOST)|g'
-	grep -rl "$(VLS_HOST)" --include "*.yml" ./ \
-      | xargs sed -i 's|9428|$(VLS_PORT)|g'
-
-bench-up-collectors: create-cluster update-helm-repos bench-up-vlagent bench-up-vector bench-up-promtail bench-up-alloy bench-up-grafana-agent bench-up-fluent-bit bench-up-otel-collector bench-up-filebeat bench-up-fluentd
-
-bench-up-generator: build-log-generator
-	kubectl create namespace log-generator || true
-	kubectl apply -f ./log-generator/deployment.yml
+bench-down-all:
+	kind delete cluster --name log-collectors-bench
 
 bench-up-monitoring: create-cluster update-helm-repos build-log-verifier
 	helm upgrade --install --wait vmo vm/victoria-metrics-operator --namespace monitoring --create-namespace
 	helm upgrade --install --wait vms vm/victoria-metrics-k8s-stack --namespace monitoring --values ./values/vm-metrics-stack.yml
 
-	helm upgrade --install --wait vls vm/victoria-logs-single --namespace monitoring
-
 	kubectl apply -f ./grafana/configmap.yml
-	kubectl apply -f ./log-verifier/deployment.yml
-	kubectl apply -f ./log-verifier/vmscrape.yml
+	kubectl apply -f ./log-verifier/manifests.yml
 
-bench-down-all:
-	kind delete cluster --name log-collectors-bench
+VLS_HOST ?= log-verifier.monitoring.svc.cluster.local.
+VLS_PORT ?= 8080
+
+set-endpoint:
+	grep -rl "log-verifier.monitoring.svc.cluster.local." --include "*.yml" ./ \
+      | xargs sed -i 's|log-verifier.monitoring.svc.cluster.local.|$(VLS_HOST)|g'
+	grep -rl "$(VLS_HOST)" --include "*.yml" ./ \
+      | xargs sed -i 's|8080|$(VLS_PORT)|g'
+
+bench-up-collectors: create-cluster update-helm-repos bench-up-vlagent bench-up-vector bench-up-promtail bench-up-alloy bench-up-grafana-agent bench-up-fluent-bit bench-up-otel-collector bench-up-filebeat bench-up-fluentd
+bench-down-collectors: bench-down-vlagent bench-down-vector bench-down-promtail bench-down-alloy bench-down-grafana-agent bench-down-fluent-bit bench-down-otel-collector bench-down-filebeat bench-down-fluentd
+
+RAMP_UP_STEP ?= 5
+RAMP_UP_STEP_INTERVAL ?= 1s
+GENERATOR_REPLICAS ?= 10
+
+bench-up-generator: build-log-generator
+	kubectl create namespace log-generator || true
+
+	RAMP_UP_STEP=$(RAMP_UP_STEP) \
+	RAMP_UP_STEP_INTERVAL=$(RAMP_UP_STEP_INTERVAL) \
+	GENERATOR_REPLICAS=$(GENERATOR_REPLICAS) \
+	envsubst < log-generator/deployment.yml | kubectl apply -f -
+
+bench-down-generator:
+	kubectl scale -n log-generator deploy/log-generator --replicas 0
 
 bench-up-vlagent:
 	# Do not pin vlagent Helm chart version because we control it and won't break backward compatibility.
 	helm upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --namespace collectors --values ./values/vlagent.yml
 
 bench-down-vlagent:
-	helm uninstall vlagent
+	helm uninstall vlagent --namespace collectors
 
 bench-up-vector:
 	helm upgrade --install --wait --create-namespace vector vector/vector --version 0.50.0 --namespace collectors --values ./values/vector.yml
 
 bench-down-vector:
-	helm uninstall vector
+	helm uninstall vector --namespace collectors
 
 bench-up-promtail:
 	# Do not use --wait here, since promtail requires processing at least 1 log entry to be ready
 	helm upgrade --install --create-namespace promtail grafana/promtail --version 6.17.1 --namespace collectors --values ./values/promtail.yml
 
 bench-down-promtail:
-	helm uninstall promtail
+	helm uninstall promtail --namespace collectors
 
 bench-up-alloy:
 	helm upgrade --install --wait --create-namespace alloy grafana/alloy --version 1.6.1 --namespace collectors --values ./values/alloy.yml
 
 bench-down-alloy:
-	helm uninstall alloy
+	helm uninstall alloy --namespace collectors
 
 bench-up-grafana-agent:
 	helm upgrade --install --wait --create-namespace grafana-agent grafana/grafana-agent --version 0.44.2 --namespace collectors --values ./values/grafana-agent.yml
 
 bench-down-grafana-agent:
-	helm uninstall grafana-agent
+	helm uninstall grafana-agent --namespace collectors
 
 bench-up-fluent-bit:
 	helm upgrade --install --wait --create-namespace fluent-bit fluent/fluent-bit --version 0.56.0 --namespace collectors --values ./values/fluent-bit.yml
 
 bench-down-fluent-bit:
-	helm uninstall fluent-bit
+	helm uninstall fluent-bit --namespace collectors
 
 bench-up-otel-collector:
 	helm upgrade --install --wait --create-namespace opentelemetry-collector open-telemetry/opentelemetry-collector --version 0.146.1 --namespace collectors --values ./values/opentelemetry-collector.yml
 
 bench-down-otel-collector:
-	helm uninstall otel-collector
+	helm uninstall opentelemetry-collector --namespace collectors
 
 bench-up-filebeat:
 	helm upgrade --install --wait --create-namespace filebeat elastic/filebeat --version 8.5.1 --set imageTag=9.3.1 --namespace collectors --values ./values/filebeat.yml
 
 bench-down-filebeat:
-	helm uninstall filebeat
+	helm uninstall filebeat --namespace collectors
 
 bench-up-fluentd:
 	helm upgrade --install --wait --create-namespace fluentd fluent/fluentd --version 0.5.3 --set image.tag=v1.19-debian-elasticsearch7-1 --namespace collectors --values ./values/fluentd.yml
 
 bench-down-fluentd:
-	helm uninstall fluentd
+	helm uninstall fluentd --namespace collectors
 
 create-cluster:
 	kind --version && (kind create cluster --config ./kind.yml --name log-collectors-bench || true)

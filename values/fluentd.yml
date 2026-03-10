@@ -78,7 +78,7 @@ fileConfigs:
     <label @OUTPUT>
       <match **>
         @type http
-        endpoint "http://vls-victoria-logs-single-server-0.vls-victoria-logs-single-server.monitoring.svc.cluster.local.:9428/insert/jsonline?extra_fields=collector=fluentd&_stream_fields=collector,kubernetes.pod_name"
+        endpoint "http://log-verifier.monitoring.svc.cluster.local.:8080/insert/jsonline?extra_fields=collector=fluentd&_stream_fields=collector,kubernetes.pod_name"
         compress gzip
       </match>
     </label>
