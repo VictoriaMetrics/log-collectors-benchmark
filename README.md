@@ -108,6 +108,11 @@ These metrics are scraped by vmagent and visualized in Grafana.
 - helm
 - make
 
+It is recommended to run this on a machine with at least 12 CPUs, 12 GiB RAM, and 200 GiB of disk space.
+
+If you have insufficient resources, follow the [Advanced Setup](#advanced-setup) steps to run only a subset of collectors.
+Each collector requires at least 1 CPU and 1 GiB RAM to operate.
+
 ## Quick Start
 
 Test all collectors:
