@@ -1,0 +1,48 @@
+# This configuration is based on this documentation:
+# https://www.elastic.co/docs/reference/beats/filebeat/running-on-kubernetes
+# specifically this manifest:
+# https://raw.githubusercontent.com/elastic/beats/9.3/deploy/kubernetes/filebeat-kubernetes.yaml
+# The following changes have been made:
+# - Glob pattern to include only log-generator logs.
+# - JSON parsing support for structured log messages
+daemonset:
+  filebeatConfig:
+    filebeat.yml: |
+      filebeat.inputs:
+        - type: filestream
+          id: kubernetes-container-logs
+          paths:
+            - /var/log/containers/*log-generator*.log
+          parsers:
+            - container: ~
+          prospector:
+            scanner:
+              fingerprint.enabled: true
+              symlinks: true
+          file_identity.fingerprint: ~
+          processors:
+            - add_kubernetes_metadata:
+                host: ${NODE_NAME}
+                matchers:
+                  - logs_path:
+                      logs_path: "/var/log/containers/"
+            - decode_json_fields:
+                fields: ["message"]
+                target: ""
+      output.elasticsearch:
+        host: '${NODE_NAME}'
+        hosts: ['log-verifier.monitoring.svc.cluster.local.:8080/insert/elasticsearch']
+        compression_level: 1
+        parameters:
+          extra_fields: 'collector=filebeat'
+          _stream_fields: 'collector,kubernetes.pod.name'
+
+  resources:
+    limits:
+      cpu: '1'
+      memory: 1Gi
+    requests:
+      cpu: '1'
+      memory: 1Gi
+  extraEnvs: [ ]
+  secretMounts: [ ]

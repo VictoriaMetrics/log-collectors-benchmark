@@ -1,0 +1,80 @@
+daemonset:
+  enabled: true
+config:
+  enabled: true
+  clients:
+    - url: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/loki/api/v1/push?extra_fields=collector=promtail&_stream_fields=collector,kubernetes.pod_name
+  positions:
+    filename: /run/promtail/positions.yaml
+  enableTracing: false
+  snippets:
+    pipelineStages:
+      - cri: { }
+    common:
+      - action: keep
+        source_labels:
+          - __meta_kubernetes_namespace
+        regex: log-generator
+      - action: replace
+        source_labels:
+          - __meta_kubernetes_pod_node_name
+        target_label: node_name
+      - action: replace
+        source_labels:
+          - __meta_kubernetes_namespace
+        target_label: namespace
+      - action: replace
+        replacement: $1
+        separator: /
+        source_labels:
+          - namespace
+          - app
+        target_label: job
+      - action: replace
+        source_labels:
+          - __meta_kubernetes_pod_name
+        target_label: kubernetes.pod_name
+      - action: replace
+        source_labels:
+          - __meta_kubernetes_pod_container_name
+        target_label: container
+      - action: replace
+        replacement: /var/log/pods/*$1/*.log
+        separator: /
+        source_labels:
+          - __meta_kubernetes_pod_uid
+          - __meta_kubernetes_pod_container_name
+        target_label: __path__
+      - action: replace
+        replacement: /var/log/pods/*$1/*.log
+        regex: true/(.*)
+        separator: /
+        source_labels:
+          - __meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash
+          - __meta_kubernetes_pod_annotation_kubernetes_io_config_hash
+          - __meta_kubernetes_pod_container_name
+        target_label: __path__
+
+resources:
+  limits:
+    cpu: '1'
+    memory: '1Gi'
+  requests:
+    cpu: '1'
+    memory: '1Gi'
+
+defaultVolumes:
+  - name: containers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: pods
+    hostPath:
+      path: /var/log/pods
+
+defaultVolumeMounts:
+  - name: containers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: pods
+    mountPath: /var/log/pods
+    readOnly: true

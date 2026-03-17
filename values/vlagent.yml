@@ -1,0 +1,20 @@
+remoteWrite:
+  - url: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/jsonline
+    # Use jsonline format instead of the native VictoriaLogs format for fair comparison with other collectors.
+    # The native format offers approximately 20% lower CPU usage.
+    format: jsonline
+    headers:
+      VL-Extra-Fields: collector=vlagent
+      VL-Stream-Fields: collector, kubernetes.pod_name
+
+collector:
+  excludeFilter: '!kubernetes.pod_namespace:=log-generator'
+  includeNodeLabels: true
+
+resources:
+  limits:
+    cpu: '1'
+    memory: 1Gi
+  requests:
+    cpu: '1'
+    memory: 1Gi
