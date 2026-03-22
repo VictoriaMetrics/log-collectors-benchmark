@@ -7,7 +7,7 @@ At VictoriaMetrics, we use it to ensure vlagent reliably delivers logs under any
 
 ## Results
 
-TBA
+https://victoriametrics.com/blog/log-collectors-benchmark-2026/
 
 ## Overview
 
