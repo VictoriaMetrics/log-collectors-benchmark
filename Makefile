@@ -22,6 +22,8 @@ set-endpoint:
 bench-up-collectors: create-cluster update-helm-repos bench-up-vlagent bench-up-vector bench-up-promtail bench-up-alloy bench-up-grafana-agent bench-up-fluent-bit bench-up-otel-collector bench-up-filebeat bench-up-fluentd
 bench-down-collectors: bench-down-vlagent bench-down-vector bench-down-promtail bench-down-alloy bench-down-grafana-agent bench-down-fluent-bit bench-down-otel-collector bench-down-filebeat bench-down-fluentd
 
+LOGS_PER_SECOND ?= 10
+RAMP_UP ?= true
 RAMP_UP_STEP ?= 5
 RAMP_UP_STEP_INTERVAL ?= 1s
 GENERATOR_REPLICAS ?= 10
@@ -29,6 +31,8 @@ GENERATOR_REPLICAS ?= 10
 bench-up-generator: build-log-generator
 	kubectl create namespace log-generator || true
 
+	LOGS_PER_SECOND=$(LOGS_PER_SECOND) \
+	RAMP_UP=$(RAMP_UP) \
 	RAMP_UP_STEP=$(RAMP_UP_STEP) \
 	RAMP_UP_STEP_INTERVAL=$(RAMP_UP_STEP_INTERVAL) \
 	GENERATOR_REPLICAS=$(GENERATOR_REPLICAS) \

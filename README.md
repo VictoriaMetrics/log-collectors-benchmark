@@ -192,11 +192,13 @@ make bench-up-generator RAMP_UP_STEP=5 RAMP_UP_STEP_INTERVAL=1s GENERATOR_REPLIC
 It will start 10 log-generator Pods.
 Each will produce 5*10 logs/sec, and gradually increase by 5 logs/sec every second, independently per replica.
 
-| Variable                | Default | Description                          |
-|-------------------------|---------|--------------------------------------|
-| `GENERATOR_REPLICAS`    | `10`    | Number of log-generator Pod replicas |
-| `RAMP_UP_STEP`          | `5`     | Logs/sec added at each ramp-up step  |
-| `RAMP_UP_STEP_INTERVAL` | `1s`    | How often to increase the load       |
+| Variable                | Default | Description                                  |
+|-------------------------|---------|----------------------------------------------|
+| `GENERATOR_REPLICAS`    | `10`    | Number of log-generator Pod replicas         |
+| `LOGS_PER_SECOND`       | `10`    | Initial log throughput                       |
+| `RAMP_UP`               | `true`  | Whether to gradually increase log throughput |
+| `RAMP_UP_STEP`          | `5`     | Logs/sec added at each ramp-up step          |
+| `RAMP_UP_STEP_INTERVAL` | `1s`    | How often to increase the load               |
 
 ### 5. Access Grafana dashboard
 

@@ -20,7 +20,7 @@ spec:
           image: log-generator:latest
           imagePullPolicy: IfNotPresent
           args:
-            - -logsPerSecond=10
-            - -rampUp=true
+            - -logsPerSecond=$LOGS_PER_SECOND
+            - -rampUp=$RAMP_UP
             - -rampUp.step=$RAMP_UP_STEP
             - -rampUp.interval=$RAMP_UP_STEP_INTERVAL
