@@ -38,12 +38,15 @@ and protocols (JSON, protobuf), which can impact performance.
 
 Configurations are based on official Helm chart defaults with
 minimal modifications required for the benchmark environment.
-No heavy tuning is applied to ensure fair comparison, including:
+We recommend keeping these settings as is:
 
-- No custom buffer sizes or queue depths.
-- No custom batch sizes or flush intervals.
-- No additional worker threads or parallelism settings.
-- No runtime tuning such as garbage collection settings.
+- Buffer sizes and queue depths.
+- Batch sizes and flush intervals.
+- Worker threads and parallelism settings.
+- Runtime settings such as garbage collection.
+
+But if changing one of them improves CPU, RAM or throughput by more than 10%, send a PR.
+See [Contributing](#contributing).
 
 All collectors have identical resource requests and limits (1 CPU, 1 GiB memory) for fair comparison
 and reduce the chance of CPU/RAM contention when running multiple collectors simultaneously.
@@ -248,3 +251,18 @@ This command deletes the `kind` cluster and all deployed resources, including th
 ```sh
 make bench-down-all
 ```
+
+## Contributing
+
+Send a PR if you know how to make a collector faster or use less memory.
+If we can reproduce the result, we re-run the benchmark and update the
+[blog post](https://victoriametrics.com/blog/log-collectors-benchmark-2026/) with the new numbers and your config.
+
+To keep the comparison fair:
+
+- Use settings from the collector's docs or its Helm chart values. Pick ones you would set in production.
+- Don't turn off work the other collectors do: CRI and JSON parsing, compression, or delivery guarantees.
+- Keep the change small, so we can validate and merge it faster.
+
+Feel free to change any officially documented setting, but only if it improves CPU, RAM or throughput
+by more than 10% without making the other numbers worse.
