@@ -110,9 +110,9 @@ update-helm-repos:
 	helm repo update
 
 build-log-generator:
-	docker build -t log-generator:latest ./log-generator
+	docker build -t log-generator:latest -f ./log-generator/Dockerfile .
 	kind load docker-image --name log-collectors-bench log-generator:latest
 
 build-log-verifier:
-	docker build -t log-verifier:latest ./log-verifier
+	docker build -t log-verifier:latest -f ./log-generator/Dockerfile .
 	kind load docker-image --name log-collectors-bench log-verifier:latest

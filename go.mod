@@ -1,4 +1,4 @@
-module github.com/VictoriaMetrics/log-collectors-benchmark/log-verifier
+module github.com/VictoriaMetrics/log-collectors-benchmark
 
 go 1.26.1
 
