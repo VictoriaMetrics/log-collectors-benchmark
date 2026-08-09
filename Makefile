@@ -28,8 +28,12 @@ RAMP_UP_STEP ?= 5
 RAMP_UP_STEP_INTERVAL ?= 1s
 GENERATOR_REPLICAS ?= 10
 
+# Deploy log-generator with the current LOGS_PER_SECOND / RAMP_UP settings.
+#
+# By default RAMP_UP=true, which makes log-generator increase the produced
+# log rate continuously by RAMP_UP_STEP every RAMP_UP_STEP_INTERVAL.
 bench-up-generator: build-log-generator
-	kubectl create namespace log-generator || true
+	kubectl create namespace log-generator --dry-run=client -o yaml | kubectl apply -f -
 
 	LOGS_PER_SECOND=$(LOGS_PER_SECOND) \
 	RAMP_UP=$(RAMP_UP) \
