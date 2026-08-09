@@ -42,8 +42,7 @@ bench-down-generator:
 	kubectl scale -n log-generator deploy/log-generator --replicas 0
 
 bench-up-vlagent:
-	# Do not pin vlagent Helm chart version because we control it and won't break backward compatibility.
-	helm upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --namespace collectors --values ./values/vlagent.yml
+	helm upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --version 0.2.14 --namespace collectors --values ./values/vlagent.yml
 
 bench-down-vlagent:
 	helm uninstall vlagent --namespace collectors
