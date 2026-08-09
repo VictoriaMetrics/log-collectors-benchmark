@@ -113,6 +113,9 @@ These metrics are scraped by vmagent and visualized in Grafana.
 
 It is recommended to run this on a machine with at least 12 CPUs, 12 GiB RAM, and 200 GiB of disk space.
 
+Ports `3000` (Grafana) and `8428` (VictoriaMetrics) must be free on the host -
+`kind` maps them from the cluster when it is created.
+
 If you have insufficient resources, follow the [Advanced Setup](#advanced-setup) steps to run only a subset of collectors.
 Each collector requires at least 1 CPU and 1 GiB RAM to operate.
 
@@ -124,13 +127,10 @@ Test all collectors:
 make bench-up-all
 ```
 
-Access Grafana dashboard:
+Grafana is exposed on the host, find `Log Collectors Benchmark` dashboard at
+http://localhost:3000/d/log_collectors_benchmark/log-collectors-benchmark.
 
-```sh
-kubectl port-forward -n monitoring svc/vms-grafana 3000:80
-```
-
-Visit http://localhost:3000 and find the `Log Collectors Benchmark` dashboard.
+VictoriaMetrics is available at http://localhost:8428.
 
 After the test completes (all collectors started losing logs), stop the generator:
 
@@ -208,13 +208,10 @@ Each will produce 5*10 logs/sec, and gradually increase by 5 logs/sec every seco
 A Grafana dashboard is provisioned automatically during setup.
 It visualizes collector performance, resource usage, and log delivery quality.
 
-Access dashboard:
+Open http://localhost:3000 (credentials: `admin`/`admin`) and navigate to the
+`Log Collectors Benchmark` dashboard.
 
-```sh
-kubectl port-forward -n monitoring svc/vms-grafana 3000:80
-```
-
-Navigate to http://localhost:3000 (credentials: `admin`/`admin`).
+VictoriaMetrics is available at http://localhost:8428 if you want to query metrics directly.
 
 ### 6. Stop log generator
 

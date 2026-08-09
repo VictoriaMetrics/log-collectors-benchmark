@@ -14,6 +14,17 @@ defaultDatasources:
       uid: victoriametrics-logs-datasource
 vmsingle:
   enabled: true
+  spec:
+    serviceSpec:
+      metadata:
+        name: vmsingle-nodeport
+      spec:
+        type: NodePort
+        ports:
+          - name: http
+            port: 8428
+            targetPort: 8428
+            nodePort: 30428
 vmcluster:
   enabled: false
 alertmanager:
@@ -26,6 +37,9 @@ vmagent:
   enabled: true
 grafana:
   enabled: true
+  service:
+    type: NodePort
+    nodePort: 30300
   plugins:
     - victoriametrics-logs-datasource
   adminPassword: admin

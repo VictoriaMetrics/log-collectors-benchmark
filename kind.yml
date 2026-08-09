@@ -4,3 +4,12 @@ kubeadmConfigPatches:
   - |
     kind: KubeletConfiguration
     maxPods: 300
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30428
+        hostPort: 8428
+        protocol: TCP
+      - containerPort: 30300
+        hostPort: 3000
+        protocol: TCP
