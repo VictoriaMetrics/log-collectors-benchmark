@@ -117,5 +117,5 @@ build-log-generator:
 	kind load docker-image --name log-collectors-bench log-generator:latest
 
 build-log-verifier:
-	docker build -t log-verifier:latest -f ./log-generator/Dockerfile .
+	docker build -t log-verifier:latest -f ./log-verifier/Dockerfile .
 	kind load docker-image --name log-collectors-bench log-verifier:latest
