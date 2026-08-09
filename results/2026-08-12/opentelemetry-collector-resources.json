@@ -1,0 +1,11 @@
+{
+  "Collector": "opentelemetry-collector",
+  "Version": "v0.146.1",
+  "Success": true,
+  "Throughput": 10099,
+  "AvgCPUUsage": 0.3502624240437163,
+  "MaxMemory": 125693952,
+  "AvgMemory": 102512673,
+  "NetworkBytesPerLog": 81,
+  "Lost": 0
+}
