@@ -1,14 +1,20 @@
+CLUSTER_NAME ?= log-collectors-bench
+KUBE_CONTEXT = kind-$(CLUSTER_NAME)
+
+KUBECTL = kubectl --context $(KUBE_CONTEXT)
+HELM    = helm --kube-context $(KUBE_CONTEXT)
+
 bench-up-all: bench-up-monitoring bench-up-collectors bench-up-generator
 
 bench-down-all:
-	kind delete cluster --name log-collectors-bench
+	kind delete cluster --name $(CLUSTER_NAME)
 
 bench-up-monitoring: create-cluster update-helm-repos build-log-verifier
-	helm upgrade --install --wait vmo vm/victoria-metrics-operator --namespace monitoring --create-namespace
-	helm upgrade --install --wait vms vm/victoria-metrics-k8s-stack --namespace monitoring --values ./values/vm-metrics-stack.yml
+	$(HELM) upgrade --install --wait vmo vm/victoria-metrics-operator --namespace monitoring --create-namespace
+	$(HELM) upgrade --install --wait vms vm/victoria-metrics-k8s-stack --namespace monitoring --values ./values/vm-metrics-stack.yml
 
-	kubectl apply -f ./grafana/configmap.yml
-	kubectl apply -f ./log-verifier/manifests.yml
+	$(KUBECTL) apply -f ./grafana/configmap.yml
+	$(KUBECTL) apply -f ./log-verifier/manifests.yml
 
 VLS_HOST ?= log-verifier.monitoring.svc.cluster.local.
 VLS_PORT ?= 8080
@@ -19,8 +25,8 @@ set-endpoint:
 	grep -rl "$(VLS_HOST)" --include "*.yml" ./ \
       | xargs sed -i 's|8080|$(VLS_PORT)|g'
 
-bench-up-collectors: create-cluster update-helm-repos bench-up-vlagent bench-up-vector bench-up-promtail bench-up-alloy bench-up-grafana-agent bench-up-fluent-bit bench-up-otel-collector bench-up-filebeat bench-up-fluentd
-bench-down-collectors: bench-down-vlagent bench-down-vector bench-down-promtail bench-down-alloy bench-down-grafana-agent bench-down-fluent-bit bench-down-otel-collector bench-down-filebeat bench-down-fluentd
+bench-up-collectors: create-cluster update-helm-repos bench-up-vlagent bench-up-vector bench-up-promtail bench-up-alloy bench-up-grafana-agent bench-up-fluent-bit bench-up-opentelemetry-collector bench-up-filebeat bench-up-fluentd
+bench-down-collectors: bench-down-vlagent bench-down-vector bench-down-promtail bench-down-alloy bench-down-grafana-agent bench-down-fluent-bit bench-down-opentelemetry-collector bench-down-filebeat bench-down-fluentd
 
 LOGS_PER_SECOND ?= 10
 RAMP_UP ?= true
@@ -33,76 +39,80 @@ GENERATOR_REPLICAS ?= 10
 # By default RAMP_UP=true, which makes log-generator increase the produced
 # log rate continuously by RAMP_UP_STEP every RAMP_UP_STEP_INTERVAL.
 bench-up-generator: build-log-generator
-	kubectl create namespace log-generator --dry-run=client -o yaml | kubectl apply -f -
+	$(KUBECTL) create namespace log-generator --dry-run=client -o yaml | $(KUBECTL) apply -f -
 
 	LOGS_PER_SECOND=$(LOGS_PER_SECOND) \
 	RAMP_UP=$(RAMP_UP) \
 	RAMP_UP_STEP=$(RAMP_UP_STEP) \
 	RAMP_UP_STEP_INTERVAL=$(RAMP_UP_STEP_INTERVAL) \
 	GENERATOR_REPLICAS=$(GENERATOR_REPLICAS) \
-	envsubst < log-generator/deployment.yml | kubectl apply -f -
+	envsubst < log-generator/deployment.yml | $(KUBECTL) apply -f -
 
 bench-down-generator:
-	kubectl scale -n log-generator deploy/log-generator --replicas 0
+	$(KUBECTL) scale -n log-generator deploy/log-generator --replicas 0
 
 bench-up-vlagent:
-	helm upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --version 0.2.14 --namespace collectors --values ./values/vlagent.yml
+	$(HELM) upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --version 0.2.14 --namespace collectors --values ./values/vlagent.yml
 
 bench-down-vlagent:
-	helm uninstall vlagent --namespace collectors
+	$(HELM) uninstall vlagent --namespace collectors
 
 bench-up-vector:
-	helm upgrade --install --wait --create-namespace vector vector/vector --version 0.50.0 --namespace collectors --values ./values/vector.yml
+	$(HELM) upgrade --install --wait --create-namespace vector vector/vector --version 0.50.0 --namespace collectors --values ./values/vector.yml
 
 bench-down-vector:
-	helm uninstall vector --namespace collectors
+	$(HELM) uninstall vector --namespace collectors
 
 bench-up-promtail:
 	# Do not use --wait here, since promtail requires processing at least 1 log entry to be ready
-	helm upgrade --install --create-namespace promtail grafana/promtail --version 6.17.1 --namespace collectors --values ./values/promtail.yml
+	$(HELM) upgrade --install --create-namespace promtail grafana/promtail --version 6.17.1 --namespace collectors --values ./values/promtail.yml
 
 bench-down-promtail:
-	helm uninstall promtail --namespace collectors
+	$(HELM) uninstall promtail --namespace collectors
 
 bench-up-alloy:
-	helm upgrade --install --wait --create-namespace alloy grafana/alloy --version 1.6.1 --namespace collectors --values ./values/alloy.yml
+	$(HELM) upgrade --install --wait --create-namespace alloy grafana/alloy --version 1.6.1 --namespace collectors --values ./values/alloy.yml
 
 bench-down-alloy:
-	helm uninstall alloy --namespace collectors
+	$(HELM) uninstall alloy --namespace collectors
 
 bench-up-grafana-agent:
-	helm upgrade --install --wait --create-namespace grafana-agent grafana/grafana-agent --version 0.44.2 --namespace collectors --values ./values/grafana-agent.yml
+	$(HELM) upgrade --install --wait --create-namespace grafana-agent grafana/grafana-agent --version 0.44.2 --namespace collectors --values ./values/grafana-agent.yml
 
 bench-down-grafana-agent:
-	helm uninstall grafana-agent --namespace collectors
+	$(HELM) uninstall grafana-agent --namespace collectors
 
 bench-up-fluent-bit:
-	helm upgrade --install --wait --create-namespace fluent-bit fluent/fluent-bit --version 0.56.0 --namespace collectors --values ./values/fluent-bit.yml
+	$(HELM) upgrade --install --wait --create-namespace fluent-bit fluent/fluent-bit --version 0.56.0 --namespace collectors --values ./values/fluent-bit.yml
 
 bench-down-fluent-bit:
-	helm uninstall fluent-bit --namespace collectors
+	$(HELM) uninstall fluent-bit --namespace collectors
 
-bench-up-otel-collector:
-	helm upgrade --install --wait --create-namespace opentelemetry-collector open-telemetry/opentelemetry-collector --version 0.146.1 --namespace collectors --values ./values/opentelemetry-collector.yml
+bench-up-opentelemetry-collector:
+	$(HELM) upgrade --install --wait --create-namespace opentelemetry-collector open-telemetry/opentelemetry-collector --version 0.146.1 --namespace collectors --values ./values/opentelemetry-collector.yml
 
-bench-down-otel-collector:
-	helm uninstall opentelemetry-collector --namespace collectors
+bench-down-opentelemetry-collector:
+	$(HELM) uninstall opentelemetry-collector --namespace collectors
 
 bench-up-filebeat:
-	helm upgrade --install --wait --create-namespace filebeat elastic/filebeat --version 8.5.1 --set imageTag=9.3.1 --namespace collectors --values ./values/filebeat.yml
+	$(HELM) upgrade --install --wait --create-namespace filebeat elastic/filebeat --version 8.5.1 --set imageTag=9.3.1 --namespace collectors --values ./values/filebeat.yml
 
 bench-down-filebeat:
-	helm uninstall filebeat --namespace collectors
+	$(HELM) uninstall filebeat --namespace collectors
 
 bench-up-fluentd:
-	helm upgrade --install --wait --create-namespace fluentd fluent/fluentd --version 0.5.3 --set image.tag=v1.19-debian-elasticsearch7-1 --namespace collectors --values ./values/fluentd.yml
+	$(HELM) upgrade --install --wait --create-namespace fluentd fluent/fluentd --version 0.5.3 --set image.tag=v1.19-debian-elasticsearch7-1 --namespace collectors --values ./values/fluentd.yml
 
 bench-down-fluentd:
-	helm uninstall fluentd --namespace collectors
+	$(HELM) uninstall fluentd --namespace collectors
 
+# Create the cluster only when it is missing, so kind does not print an error
+# on every run. A real failure to create it now stops the build.
 create-cluster:
-	kind --version && (kind create cluster --config ./kind.yml --name log-collectors-bench || true)
+	@kind get clusters | grep -qx "$(CLUSTER_NAME)" \
+		|| kind create cluster --config ./kind.yml --name "$(CLUSTER_NAME)"
 
+# Helm repo commands are local and do not touch the cluster.
 update-helm-repos:
 	helm repo add vm https://victoriametrics.github.io/helm-charts/
 	helm repo add vector https://helm.vector.dev
@@ -114,8 +124,8 @@ update-helm-repos:
 
 build-log-generator:
 	docker build -t log-generator:latest -f ./log-generator/Dockerfile .
-	kind load docker-image --name log-collectors-bench log-generator:latest
+	kind load docker-image --name $(CLUSTER_NAME) log-generator:latest
 
 build-log-verifier:
 	docker build -t log-verifier:latest -f ./log-verifier/Dockerfile .
-	kind load docker-image --name log-collectors-bench log-verifier:latest
+	kind load docker-image --name $(CLUSTER_NAME) log-verifier:latest
