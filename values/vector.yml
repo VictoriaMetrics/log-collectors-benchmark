@@ -30,6 +30,11 @@ customConfig:
       type: http
       inputs: [ parser ]
       compression: zstd
+      batch:
+        # Override the default batch size of 10 MiB with 2 MiB.
+        # Reduces memory usage from ~160 MiB to ~105 MiB when collecting
+        # logs from a single Pod at 10 000 logs/sec with no change to CPU or network usage.
+        max_bytes: 2097152
       uri: "http://log-verifier.monitoring.svc.cluster.local.:8080/insert/jsonline"
       encoding:
         codec: json
