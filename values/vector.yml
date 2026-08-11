@@ -7,8 +7,12 @@ customConfig:
     kubernetes_logs:
       type: kubernetes_logs
       extra_field_selector: "metadata.namespace=log-generator"
-      # The same value is used in Fluent Bit configuration by default
-      glob_minimum_cooldown_ms: 10000
+      # The default value for glob_minimum_cooldown_ms is 1 minute.
+      # This is not enough to detect new logs, as the file rotates every 10 seconds.
+      # We do not set the value to 10 seconds because Vector sends logs with a delay
+      # of ~12 seconds at the 99th percentile in our tests.
+      # We observed no noticeable difference in CPU or memory usage between 5 and 10 seconds.
+      glob_minimum_cooldown_ms: 5000
       namespace_annotation_fields:
         namespace_labels: ""
   transforms:
