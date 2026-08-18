@@ -1,0 +1,22 @@
+{
+  "_msg": "Request processed successfully",
+  "_stream": "{collector=\"promtail\",kubernetes.pod_name=\"log-generator-7d7546994b-sgqrv\"}",
+  "_time": "2026-08-10T17:38:35.121089019Z",
+  "app": "log-generator",
+  "collector": "promtail",
+  "component": "notification-service",
+  "container": "log-generator",
+  "duration_ms": "705",
+  "filename": "/var/log/pods/log-generator_log-generator-7d7546994b-sgqrv_dbf56f0e-5f00-4a39-aef1-a6916e33fc11/log-generator/0.log",
+  "generated_at": "1786383515121049424",
+  "job": "log-generator/log-generator",
+  "kubernetes.pod_name": "log-generator-7d7546994b-sgqrv",
+  "level": "DEBUG",
+  "method": "DELETE",
+  "namespace": "log-generator",
+  "node_name": "log-collectors-bench-control-plane",
+  "sequence_id": "1",
+  "status_code": "404",
+  "stream": "stdout",
+  "trace_id": "trace-a1b2c3d4"
+}

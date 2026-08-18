@@ -45,7 +45,7 @@ config:
         compress gzip
         uri /insert/jsonline
         format json_lines
-        header VL-Extra-Fields collector=fluentbit
+        header VL-Extra-Fields collector=fluent-bit
         header VL-Stream-Fields collector,kubernetes.pod_name
 
   ## https://docs.fluentbit.io/manual/pipeline/parsers

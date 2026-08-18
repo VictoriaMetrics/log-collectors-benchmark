@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log Collectors Benchmark</title>
+  <meta name="description"
+        content="Throughput, CPU, memory and log delivery correctness of 9 Kubernetes log collectors measured on identical hardware under identical load.">
+  <link rel="canonical" href="https://victoriametrics.github.io/log-collectors-benchmark/">
+  <style>
+      :root {
+          --bg: #3a4048;
+          --box: #454c55;
+          --box-head: #4e5661;
+          --code-bg: #2f343b;
+          --border: #5a626d;
+          --text: #e6e9ed;
+          --text-gray: #b0b8c1;
+          --link: #8ab4f8;
+          --fail: #f28b82;
+      }
+
+      body {
+          margin: 0;
+          background: var(--bg);
+          color: var(--text);
+          font-family: system-ui, sans-serif;
+          font-size: 15px;
+          line-height: 1.6;
+      }
+
+      .container {
+          max-width: 1300px;
+          margin: 0 auto;
+          padding: 0 1.5rem;
+      }
+
+      header {
+          background: var(--box);
+          border-bottom: 1px solid var(--border);
+          padding: 2.5rem 0 2rem;
+          margin-bottom: 2.5rem;
+      }
+
+      main {
+          padding-bottom: 5rem;
+      }
+
+      a {
+          color: var(--link);
+      }
+
+      h1 {
+          font-size: 2rem;
+          margin: 0 0 0.4rem;
+      }
+
+      h2 {
+          font-size: 1.3rem;
+          margin: 1rem 0 0.75rem;
+      }
+
+      h3 {
+          font-size: 1.05rem;
+          margin: 1rem 0 0.5rem;
+      }
+
+      h4 {
+          font-size: 1rem;
+          margin: 1rem 0 0.5rem;
+      }
+
+      p {
+          max-width: 90ch;
+          margin-bottom: 1rem;
+          color: var(--text-gray);
+      }
+
+      .tagline {
+          font-size: 1.05rem;
+      }
+
+      .repo {
+          margin: 0;
+          font-size: 0.9rem;
+      }
+
+      .conditions {
+          margin: 0 0 0.75rem;
+          font-size: 0.9rem;
+      }
+
+      details {
+          margin-bottom: 1rem;
+      }
+
+      summary {
+          padding: 0.75rem 0;
+          font-size: 1.05rem;
+          font-weight: 600;
+          cursor: pointer;
+      }
+
+      .counts {
+          margin-left: 0.5rem;
+          font-size: 0.9rem;
+          font-weight: 400;
+          color: var(--text-gray);
+      }
+
+      .code {
+          background: var(--code-bg);
+          padding: 0.1em 0.4em;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 0.9em;
+      }
+
+      pre {
+          margin: 0;
+          padding: 1rem;
+          background: var(--code-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow-x: auto;
+          font-size: 0.85rem;
+      }
+
+      .scroll {
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow-x: auto;
+          margin-bottom: 1.5rem;
+      }
+
+      table {
+          width: 100%;
+          background: var(--box);
+          border-collapse: collapse;
+      }
+
+      th, td {
+          padding: 0.7rem 1rem;
+          border-bottom: 1px solid var(--border);
+          text-align: right;
+          white-space: nowrap;
+      }
+
+      th {
+          background: var(--box-head);
+          color: var(--text-gray);
+          font-size: 0.75rem;
+          vertical-align: bottom;
+      }
+
+      th[onclick] {
+          cursor: pointer;
+      }
+
+      td {
+          font-variant-numeric: tabular-nums;
+      }
+
+      td:first-child {
+          font-weight: 500;
+      }
+
+      tr:last-child td {
+          border-bottom: none;
+      }
+
+      tbody tr:hover td {
+          background-color: var(--box-head);
+      }
+
+      .align-left {
+          text-align: left;
+      }
+
+      .narrow {
+          width: 1%;
+      }
+
+      .label {
+          display: block;
+      }
+
+      .hint {
+          display: block;
+          font-size: 0.95em;
+          font-weight: 400;
+          opacity: 0.6;
+      }
+
+      .sorted-asc .label::after {
+          content: " ↑";
+      }
+
+      .sorted-desc .label::after {
+          content: " ↓";
+      }
+
+      .bar {
+          background-image: linear-gradient(rgba(138, 180, 248, 0.28), rgba(138, 180, 248, 0.28));
+          background-repeat: no-repeat;
+          background-size: var(--percent) 90%;
+          background-position-x: left -2px;
+          background-position-y: center;
+      }
+
+      .fail {
+          color: var(--fail);
+      }
+  </style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>Log Collectors Benchmark</h1>
+    <p class="tagline">
+      Throughput, resource usage and delivery correctness of log collectors that read log files
+      on a Kubernetes Node, parse structured JSON logs, and enrich them with Pod metadata.
+    </p>
+    <p class="repo">
+      <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark">github.com/VictoriaMetrics/log-collectors-benchmark</a>
+    </p>
+  </div>
+</header>
+<main class="container">
+  <h2>Results</h2>
+      <details open>
+        <summary>12 Aug 2026</summary>
+
+        <h3>Maximum throughput
+          <span class="counts">8 passed, 1 failed</span>
+        </h3>
+        <p class="conditions">
+          50 Pods, each increasing its log rate by 2 logs/sec every second until the collector stops keeping up.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+            <tr>
+              <th class="align-left narrow">Collector</th>
+              <th class="align-left narrow">Status</th>
+              <th>
+                <span class="label">Max throughput (logs/sec)</span>
+                <span class="hint">higher is better</span>
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/vlagent.yml">vlagent</a>
+                  <span class="counts">v1.48.0</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 100%">178274</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/grafana-agent.yml">grafana-agent</a>
+                  <span class="counts">v0.44.2</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 17.929703714506886%">31964</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/opentelemetry-collector.yml">opentelemetry-collector</a>
+                  <span class="counts">v0.146.1</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 15.317993650223812%">27308</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/promtail.yml">promtail</a>
+                  <span class="counts">v3.5.1</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 15.252925272333599%">27192</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/alloy.yml">alloy</a>
+                  <span class="counts">v1.13.2</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 14.852418187733488%">26478</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/vector.yml">vector</a>
+                  <span class="counts">v0.53.0</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 9.780450318049743%">17436</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/filebeat.yml">filebeat</a>
+                  <span class="counts">v9.3.1</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 6.237589328786026%">11120</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/fluentd.yml">fluentd</a>
+                  <span class="counts">v1.19</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 3.9534648911226538%">7048</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/fluent-bit.yml">fluent-bit</a>
+                  <span class="counts">v4.2.3</span>
+                </td>
+                <td class="align-left fail">fail: OOMKilled</td>
+                <td class="bar" style="--percent: 22.559655361970897%">40218</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Resource usage at 10 000 logs/sec
+          <span class="counts">7 passed, 1 failed</span>
+        </h3>
+        <p class="conditions">
+          10 Pods produce 1 000 logs/sec each for 1 hour.
+          Collectors unable to sustain this rate are omitted.
+        </p>
+        <div class="scroll">
+          <table id="resources-table-0">
+            <thead>
+            <tr>
+              <th class="align-left narrow">Collector</th>
+              <th class="align-left narrow">Status</th>
+              <th onclick="sortTable('resources-table-0', 2)">
+                <span class="label">Avg CPU (cores)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th onclick="sortTable('resources-table-0', 3)">
+                <span class="label">Avg RAM (MiB)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th onclick="sortTable('resources-table-0', 4)">
+                <span class="label">Max RAM (MiB)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th onclick="sortTable('resources-table-0', 5)">
+                <span class="label">Net (bytes/log)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th>
+                <span class="label">Lost</span>
+                <span class="hint">lower is better</span>
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/vlagent.yml">vlagent</a>
+                  <span class="counts">v1.48.0</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 5.405741457764232%">0.05</td>
+                <td class="bar" style="--percent: 13.649546649397099%">29.6</td>
+                <td class="bar" style="--percent: 14.507634122426111%">40.5</td>
+                <td class="bar" style="--percent: 13.924050632911392%">33</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/fluent-bit.yml">fluent-bit</a>
+                  <span class="counts">v4.2.3</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 23.860504818921275%">0.21</td>
+                <td class="bar" style="--percent: 27.703812068968848%">60.0</td>
+                <td class="bar" style="--percent: 41.29149740860065%">115.1</td>
+                <td class="bar" style="--percent: 16.455696202531644%">39</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/grafana-agent.yml">grafana-agent</a>
+                  <span class="counts">v0.44.2</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 33.75964633257229%">0.30</td>
+                <td class="bar" style="--percent: 25.963458954268898%">56.3</td>
+                <td class="bar" style="--percent: 22.528365317271327%">62.8</td>
+                <td class="bar" style="--percent: 22.78481012658228%">54</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/opentelemetry-collector.yml">opentelemetry-collector</a>
+                  <span class="counts">v0.146.1</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 39.502560563315335%">0.35</td>
+                <td class="bar" style="--percent: 45.11349153472532%">97.8</td>
+                <td class="bar" style="--percent: 42.98501190642947%">119.9</td>
+                <td class="bar" style="--percent: 34.177215189873415%">81</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/alloy.yml">alloy</a>
+                  <span class="counts">v1.13.2</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 40.99226490402222%">0.36</td>
+                <td class="bar" style="--percent: 30.414369091377548%">65.9</td>
+                <td class="bar" style="--percent: 28.728113181117802%">80.1</td>
+                <td class="bar" style="--percent: 40.50632911392405%">96</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/vector.yml">vector</a>
+                  <span class="counts">v0.53.0</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 45.31123108560784%">0.40</td>
+                <td class="bar" style="--percent: 42.595217009357505%">92.3</td>
+                <td class="bar" style="--percent: 39.88934024373162%">111.2</td>
+                <td class="bar" style="--percent: 16.455696202531644%">39</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/promtail.yml">promtail</a>
+                  <span class="counts">v3.5.1</span>
+                </td>
+                <td class="align-left">pass</td>
+                <td class="bar" style="--percent: 49.52146165534961%">0.44</td>
+                <td class="bar" style="--percent: 22.86458395929733%">49.5</td>
+                <td class="bar" style="--percent: 19.400476257178877%">54.1</td>
+                <td class="bar" style="--percent: 23.20675105485232%">55</td>
+                <td>0</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/filebeat.yml">filebeat</a>
+                  <span class="counts">v9.3.1</span>
+                </td>
+                <td class="align-left fail">fail: lost too many rows</td>
+                <td class="bar" style="--percent: 100%">0.89</td>
+                <td class="bar" style="--percent: 100%">216.7</td>
+                <td class="bar" style="--percent: 100%">278.9</td>
+                <td class="bar" style="--percent: 100%">237</td>
+                <td>434.0k</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+        <h2>Methodology</h2>
+        <p>
+          Each collector runs on its own, with no other collectors on the Node.
+          All log generator Pods produce the same kind of JSON records,
+          see <a href="#log-format">log format</a> for details.
+        </p>
+        <p>
+          Every collector is limited to 1 CPU and 1 GiB of memory.
+          Configs are based on the official Helm chart values and may include tuning to improve collector performance.
+          The collector names in the tables link to the exact configs of each run.
+        </p>
+        <p>
+          Throughput is counted at the receiving end, not by the collectors themselves.
+          A collector is marked as failed when its container restarts or when logs are lost.
+          Its numbers still show what it reached before that.
+        </p>
+        <p>
+          The benchmark runs on a <span class="code">c2d-highcpu-8</span> virtual machine with a local SSD.
+          Apart from the log generator and the collector under test, the Node only runs
+          the benchmark components: log-verifier, VictoriaMetrics and Grafana.
+        </p>
+        <p>
+          Kubernetes log rotation settings are kept at their defaults:
+          maximum log file size is 10 MiB, with checks running every 10 seconds.
+        </p>
+        <p>
+          Send an updated collector config if you know how to speed it up by more than 10%
+          without introducing unusual production settings.
+        </p>
+
+        <h2>Transport config</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+            <tr>
+              <th class="align-left narrow">Collector</th>
+              <th>Protocol</th>
+              <th>Compression</th>
+            </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/alloy.yml">alloy</a>
+                </td>
+                <td>Loki</td>
+                <td>snappy</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/filebeat.yml">filebeat</a>
+                </td>
+                <td>Elasticsearch</td>
+                <td>none</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/fluent-bit.yml">fluent-bit</a>
+                </td>
+                <td>JSON Lines</td>
+                <td>gzip</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/fluentd.yml">fluentd</a>
+                </td>
+                <td>JSON Lines</td>
+                <td>gzip</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/grafana-agent.yml">grafana-agent</a>
+                </td>
+                <td>Loki</td>
+                <td>snappy</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/opentelemetry-collector.yml">opentelemetry-collector</a>
+                </td>
+                <td>OpenTelemetry</td>
+                <td>gzip</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/promtail.yml">promtail</a>
+                </td>
+                <td>Loki</td>
+                <td>snappy</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/vector.yml">vector</a>
+                </td>
+                <td>JSON Lines</td>
+                <td>zstd</td>
+              </tr>
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/57de80ae0ed83ebcdd9545ac3ef026c6ab7e51e1/values/vlagent.yml">vlagent</a>
+                </td>
+                <td>JSON Lines</td>
+                <td>zstd</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <details>
+          <summary>Log format of each collector</summary>
+            <div id="log-format"></div>
+              <h4>original</h4>
+              <pre>{
+  &#34;generated_at&#34;: 1786383515121049424,
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;sequence_id&#34;: 1,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;status_code&#34;: 404,
+  &#34;duration_ms&#34;: 705,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>alloy</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;alloy\&#34;,kubernetes.pod_name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;collector&#34;: &#34;alloy&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;container&#34;: &#34;log-generator&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;filename&#34;: &#34;/var/log/containers/log-generator-7d7546994b-sgqrv_log-generator_log-generator-53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0.log&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;job&#34;: &#34;log-generator/log-generator&#34;,
+  &#34;kubernetes.pod_name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;namespace&#34;: &#34;log-generator&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;stream&#34;: &#34;stdout&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>fluent-bit</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_p&#34;: &#34;F&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;fluent-bit\&#34;,kubernetes.pod_name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:37.168911826Z&#34;,
+  &#34;collector&#34;: &#34;fluent-bit&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;date&#34;: &#34;1786383515.121089&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;kubernetes.container_hash&#34;: &#34;sha256:b94e663657e4aaeceedbb53afe77ff0b37be195ed9ad91ae7d036947f99c76be&#34;,
+  &#34;kubernetes.container_image&#34;: &#34;docker.io/library/log-generator:latest&#34;,
+  &#34;kubernetes.container_name&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.docker_id&#34;: &#34;53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0&#34;,
+  &#34;kubernetes.host&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;kubernetes.labels.app&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.labels.pod-template-hash&#34;: &#34;7d7546994b&#34;,
+  &#34;kubernetes.namespace_name&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.pod_id&#34;: &#34;dbf56f0e-5f00-4a39-aef1-a6916e33fc11&#34;,
+  &#34;kubernetes.pod_ip&#34;: &#34;10.244.0.39&#34;,
+  &#34;kubernetes.pod_name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;stream&#34;: &#34;stdout&#34;,
+  &#34;time&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>fluentd</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;fluentd\&#34;,kubernetes.pod_name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:40:09.456255437Z&#34;,
+  &#34;collector&#34;: &#34;fluentd&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;docker.container_id&#34;: &#34;53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;kubernetes.container_image&#34;: &#34;docker.io/library/log-generator:latest&#34;,
+  &#34;kubernetes.container_image_id&#34;: &#34;sha256:b94e663657e4aaeceedbb53afe77ff0b37be195ed9ad91ae7d036947f99c76be&#34;,
+  &#34;kubernetes.container_name&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.host&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;kubernetes.labels.app&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.labels.pod-template-hash&#34;: &#34;7d7546994b&#34;,
+  &#34;kubernetes.namespace_name&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.pod_id&#34;: &#34;dbf56f0e-5f00-4a39-aef1-a6916e33fc11&#34;,
+  &#34;kubernetes.pod_ip&#34;: &#34;10.244.0.39&#34;,
+  &#34;kubernetes.pod_name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;stream&#34;: &#34;stdout&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>grafana-agent</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;grafana-agent\&#34;,pod=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;collector&#34;: &#34;grafana-agent&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;filename&#34;: &#34;/var/log/containers/log-generator-7d7546994b-sgqrv_log-generator_log-generator-53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0.log&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;namespace&#34;: &#34;log-generator&#34;,
+  &#34;node_name&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;pod&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;stream&#34;: &#34;stdout&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>opentelemetry-collector</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_msg&#34;: &#34;{\&#34;generated_at\&#34;:1786383515121049424,\&#34;_msg\&#34;:\&#34;Request processed successfully\&#34;,\&#34;sequence_id\&#34;:1,\&#34;level\&#34;:\&#34;DEBUG\&#34;,\&#34;component\&#34;:\&#34;notification-service\&#34;,\&#34;method\&#34;:\&#34;DELETE\&#34;,\&#34;status_code\&#34;:404,\&#34;duration_ms\&#34;:705,\&#34;trace_id\&#34;:\&#34;trace-a1b2c3d4\&#34;}&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;opentelemetry-collector\&#34;,k8s.pod.name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;collector&#34;: &#34;opentelemetry-collector&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049300&#34;,
+  &#34;k8s.container.name&#34;: &#34;log-generator&#34;,
+  &#34;k8s.container.restart_count&#34;: &#34;0&#34;,
+  &#34;k8s.namespace.name&#34;: &#34;log-generator&#34;,
+  &#34;k8s.pod.name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;k8s.pod.uid&#34;: &#34;dbf56f0e-5f00-4a39-aef1-a6916e33fc11&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;log.file.path&#34;: &#34;/var/log/pods/log-generator_log-generator-7d7546994b-sgqrv_dbf56f0e-5f00-4a39-aef1-a6916e33fc11/log-generator/0.log&#34;,
+  &#34;log.iostream&#34;: &#34;stdout&#34;,
+  &#34;logtag&#34;: &#34;F&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;scope.name&#34;: &#34;unknown&#34;,
+  &#34;scope.version&#34;: &#34;unknown&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;severity&#34;: &#34;Unspecified&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>promtail</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;promtail\&#34;,kubernetes.pod_name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;app&#34;: &#34;log-generator&#34;,
+  &#34;collector&#34;: &#34;promtail&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;container&#34;: &#34;log-generator&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;filename&#34;: &#34;/var/log/pods/log-generator_log-generator-7d7546994b-sgqrv_dbf56f0e-5f00-4a39-aef1-a6916e33fc11/log-generator/0.log&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;job&#34;: &#34;log-generator/log-generator&#34;,
+  &#34;kubernetes.pod_name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;namespace&#34;: &#34;log-generator&#34;,
+  &#34;node_name&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;stream&#34;: &#34;stdout&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>vector</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;vector\&#34;,kubernetes.pod_name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:40.489786168Z&#34;,
+  &#34;collector&#34;: &#34;vector&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;file&#34;: &#34;/var/log/pods/log-generator_log-generator-7d7546994b-sgqrv_dbf56f0e-5f00-4a39-aef1-a6916e33fc11/log-generator/0.log&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;kubernetes.container_id&#34;: &#34;containerd://53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0&#34;,
+  &#34;kubernetes.container_image&#34;: &#34;log-generator:latest&#34;,
+  &#34;kubernetes.container_image_id&#34;: &#34;sha256:b94e663657e4aaeceedbb53afe77ff0b37be195ed9ad91ae7d036947f99c76be&#34;,
+  &#34;kubernetes.container_name&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.node_labels.beta.kubernetes.io/arch&#34;: &#34;amd64&#34;,
+  &#34;kubernetes.node_labels.beta.kubernetes.io/os&#34;: &#34;linux&#34;,
+  &#34;kubernetes.node_labels.kubernetes.io/arch&#34;: &#34;amd64&#34;,
+  &#34;kubernetes.node_labels.kubernetes.io/hostname&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;kubernetes.node_labels.kubernetes.io/os&#34;: &#34;linux&#34;,
+  &#34;kubernetes.pod_ip&#34;: &#34;10.244.0.39&#34;,
+  &#34;kubernetes.pod_ips&#34;: &#34;[\&#34;10.244.0.39\&#34;]&#34;,
+  &#34;kubernetes.pod_labels.app&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.pod_labels.pod-template-hash&#34;: &#34;7d7546994b&#34;,
+  &#34;kubernetes.pod_name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;kubernetes.pod_namespace&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.pod_node_name&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;kubernetes.pod_owner&#34;: &#34;ReplicaSet/log-generator-7d7546994b&#34;,
+  &#34;kubernetes.pod_uid&#34;: &#34;dbf56f0e-5f00-4a39-aef1-a6916e33fc11&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;source_type&#34;: &#34;kubernetes_logs&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;stream&#34;: &#34;stdout&#34;,
+  &#34;timestamp&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+              <h4>vlagent</h4>
+              <pre>{
+  &#34;_msg&#34;: &#34;Request processed successfully&#34;,
+  &#34;_stream&#34;: &#34;{collector=\&#34;vlagent\&#34;,kubernetes.pod_name=\&#34;log-generator-7d7546994b-sgqrv\&#34;}&#34;,
+  &#34;_time&#34;: &#34;2026-08-10T17:38:35.121089019Z&#34;,
+  &#34;collector&#34;: &#34;vlagent&#34;,
+  &#34;component&#34;: &#34;notification-service&#34;,
+  &#34;duration_ms&#34;: &#34;705&#34;,
+  &#34;generated_at&#34;: &#34;1786383515121049424&#34;,
+  &#34;kubernetes.container_id&#34;: &#34;containerd://53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0&#34;,
+  &#34;kubernetes.container_name&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.node_labels.beta.kubernetes.io/arch&#34;: &#34;amd64&#34;,
+  &#34;kubernetes.node_labels.beta.kubernetes.io/os&#34;: &#34;linux&#34;,
+  &#34;kubernetes.node_labels.kubernetes.io/arch&#34;: &#34;amd64&#34;,
+  &#34;kubernetes.node_labels.kubernetes.io/hostname&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;kubernetes.node_labels.kubernetes.io/os&#34;: &#34;linux&#34;,
+  &#34;kubernetes.pod_ip&#34;: &#34;10.244.0.39&#34;,
+  &#34;kubernetes.pod_labels.app&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.pod_labels.pod-template-hash&#34;: &#34;7d7546994b&#34;,
+  &#34;kubernetes.pod_name&#34;: &#34;log-generator-7d7546994b-sgqrv&#34;,
+  &#34;kubernetes.pod_namespace&#34;: &#34;log-generator&#34;,
+  &#34;kubernetes.pod_node_name&#34;: &#34;log-collectors-bench-control-plane&#34;,
+  &#34;level&#34;: &#34;DEBUG&#34;,
+  &#34;method&#34;: &#34;DELETE&#34;,
+  &#34;sequence_id&#34;: &#34;1&#34;,
+  &#34;status_code&#34;: &#34;404&#34;,
+  &#34;trace_id&#34;: &#34;trace-a1b2c3d4&#34;
+}
+</pre>
+        </details>
+
+        <h2>Previous runs</h2>
+</main>
+
+<script>
+    const sortedColByTable = {};
+
+    function sortTable(tableId, colNum) {
+        const table = document.getElementById(tableId);
+        const thead = table.querySelector("thead");
+        const tbody = table.querySelector("tbody");
+
+        const headers = Array.from(thead.children[0].children);
+        const rows = Array.from(tbody.rows);
+        if (sortedColByTable[tableId] === colNum) {
+            
+            rows.reverse();
+            const header = headers[colNum];
+            header.classList.toggle("sorted-asc");
+            header.classList.toggle("sorted-desc");
+        } else {
+            rows.sort((leftRow, rightRow) => {
+                const leftCol = leftRow.children[colNum];
+                const rightCol = rightRow.children[colNum];
+
+                const aPct = window.getComputedStyle(leftCol).getPropertyValue('--percent');
+                const bPct = window.getComputedStyle(rightCol).getPropertyValue('--percent');
+
+                
+                const a = Number.parseFloat(aPct);
+                const b = Number.parseFloat(bPct);
+
+                return a - b;
+            });
+
+            headers.forEach((el) => (el.classList.remove("sorted-asc", "sorted-desc")));
+            headers[colNum].classList.add("sorted-asc");
+        }
+
+        sortedColByTable[tableId] = colNum
+        rows.forEach((el) => tbody.appendChild(el))
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log Collectors Benchmark</title>
+  <meta name="description"
+        content="Throughput, CPU, memory and log delivery correctness of 9 Kubernetes log collectors measured on identical hardware under identical load.">
+  <link rel="canonical" href="https://victoriametrics.github.io/log-collectors-benchmark/">
+  <style>
+      :root {
+          --bg: #3a4048;
+          --box: #454c55;
+          --box-head: #4e5661;
+          --code-bg: #2f343b;
+          --border: #5a626d;
+          --text: #e6e9ed;
+          --text-gray: #b0b8c1;
+          --link: #8ab4f8;
+          --fail: #f28b82;
+      }
+
+      body {
+          margin: 0;
+          background: var(--bg);
+          color: var(--text);
+          font-family: system-ui, sans-serif;
+          font-size: 15px;
+          line-height: 1.6;
+      }
+
+      .container {
+          max-width: 1300px;
+          margin: 0 auto;
+          padding: 0 1.5rem;
+      }
+
+      header {
+          background: var(--box);
+          border-bottom: 1px solid var(--border);
+          padding: 2.5rem 0 2rem;
+          margin-bottom: 2.5rem;
+      }
+
+      main {
+          padding-bottom: 5rem;
+      }
+
+      a {
+          color: var(--link);
+      }
+
+      h1 {
+          font-size: 2rem;
+          margin: 0 0 0.4rem;
+      }
+
+      h2 {
+          font-size: 1.3rem;
+          margin: 1rem 0 0.75rem;
+      }
+
+      h3 {
+          font-size: 1.05rem;
+          margin: 1rem 0 0.5rem;
+      }
+
+      h4 {
+          font-size: 1rem;
+          margin: 1rem 0 0.5rem;
+      }
+
+      p {
+          max-width: 90ch;
+          margin-bottom: 1rem;
+          color: var(--text-gray);
+      }
+
+      .tagline {
+          font-size: 1.05rem;
+      }
+
+      .repo {
+          margin: 0;
+          font-size: 0.9rem;
+      }
+
+      .conditions {
+          margin: 0 0 0.75rem;
+          font-size: 0.9rem;
+      }
+
+      details {
+          margin-bottom: 1rem;
+      }
+
+      summary {
+          padding: 0.75rem 0;
+          font-size: 1.05rem;
+          font-weight: 600;
+          cursor: pointer;
+      }
+
+      .counts {
+          margin-left: 0.5rem;
+          font-size: 0.9rem;
+          font-weight: 400;
+          color: var(--text-gray);
+      }
+
+      .code {
+          background: var(--code-bg);
+          padding: 0.1em 0.4em;
+          border-radius: 4px;
+          font-family: monospace;
+          font-size: 0.9em;
+      }
+
+      pre {
+          margin: 0;
+          padding: 1rem;
+          background: var(--code-bg);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow-x: auto;
+          font-size: 0.85rem;
+      }
+
+      .scroll {
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow-x: auto;
+          margin-bottom: 1.5rem;
+      }
+
+      table {
+          width: 100%;
+          background: var(--box);
+          border-collapse: collapse;
+      }
+
+      th, td {
+          padding: 0.7rem 1rem;
+          border-bottom: 1px solid var(--border);
+          text-align: right;
+          white-space: nowrap;
+      }
+
+      th {
+          background: var(--box-head);
+          color: var(--text-gray);
+          font-size: 0.75rem;
+          vertical-align: bottom;
+      }
+
+      th[onclick] {
+          cursor: pointer;
+      }
+
+      td {
+          font-variant-numeric: tabular-nums;
+      }
+
+      td:first-child {
+          font-weight: 500;
+      }
+
+      tr:last-child td {
+          border-bottom: none;
+      }
+
+      tbody tr:hover td {
+          background-color: var(--box-head);
+      }
+
+      .align-left {
+          text-align: left;
+      }
+
+      .narrow {
+          width: 1%;
+      }
+
+      .label {
+          display: block;
+      }
+
+      .hint {
+          display: block;
+          font-size: 0.95em;
+          font-weight: 400;
+          opacity: 0.6;
+      }
+
+      .sorted-asc .label::after {
+          content: " ↑";
+      }
+
+      .sorted-desc .label::after {
+          content: " ↓";
+      }
+
+      .bar {
+          background-image: linear-gradient(rgba(138, 180, 248, 0.28), rgba(138, 180, 248, 0.28));
+          background-repeat: no-repeat;
+          background-size: var(--percent) 90%;
+          background-position-x: left -2px;
+          background-position-y: center;
+      }
+
+      .fail {
+          color: var(--fail);
+      }
+  </style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <h1>Log Collectors Benchmark</h1>
+    <p class="tagline">
+      Throughput, resource usage and delivery correctness of log collectors that read log files
+      on a Kubernetes Node, parse structured JSON logs, and enrich them with Pod metadata.
+    </p>
+    <p class="repo">
+      <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark">github.com/VictoriaMetrics/log-collectors-benchmark</a>
+    </p>
+  </div>
+</header>
+<main class="container">
+  <h2>Results</h2>
+    {{- range $i, $r := .Runs }}
+      <details{{ if eq $i 0 }} open{{ end }}>
+        <summary>{{ $r.Date }}</summary>
+
+        <h3>Maximum throughput
+          <span class="counts">{{ $r.ThroughputTable.Passed }} passed, {{ $r.ThroughputTable.Failed }} failed</span>
+        </h3>
+        <p class="conditions">
+          50 Pods, each increasing its log rate by 2 logs/sec every second until the collector stops keeping up.
+        </p>
+        <div class="scroll">
+          <table>
+            <thead>
+            <tr>
+              <th class="align-left narrow">Collector</th>
+              <th class="align-left narrow">Status</th>
+              <th>
+                <span class="label">Max throughput (logs/sec)</span>
+                <span class="hint">higher is better</span>
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+            {{- range $r.ThroughputTable.Rows }}
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/{{ $r.Info.GitHash }}/values/{{ .Collector }}.yml">{{ .Collector }}</a>
+                  <span class="counts">{{ .Version }}</span>
+                </td>
+                <td class="align-left{{ if ne .Status "pass" }} fail{{ end }}">{{ .Status }}</td>
+                <td class="bar" style="--percent: {{ .ThroughputPercent }}%">{{ .MaxThroughput }}</td>
+              </tr>
+            {{- end }}
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Resource usage at 10 000 logs/sec
+          <span class="counts">{{ $r.ResourcesTable.Passed }} passed, {{ $r.ResourcesTable.Failed }} failed</span>
+        </h3>
+        <p class="conditions">
+          10 Pods produce 1 000 logs/sec each for 1 hour.
+          Collectors unable to sustain this rate are omitted.
+        </p>
+        <div class="scroll">
+          <table id="resources-table-{{ $i }}">
+            <thead>
+            <tr>
+              <th class="align-left narrow">Collector</th>
+              <th class="align-left narrow">Status</th>
+              <th onclick="sortTable('resources-table-{{ $i }}', 2)">
+                <span class="label">Avg CPU (cores)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th onclick="sortTable('resources-table-{{ $i }}', 3)">
+                <span class="label">Avg RAM (MiB)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th onclick="sortTable('resources-table-{{ $i }}', 4)">
+                <span class="label">Max RAM (MiB)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th onclick="sortTable('resources-table-{{ $i }}', 5)">
+                <span class="label">Net (bytes/log)</span>
+                <span class="hint">lower is better</span>
+              </th>
+              <th>
+                <span class="label">Lost</span>
+                <span class="hint">lower is better</span>
+              </th>
+            </tr>
+            </thead>
+            <tbody>
+            {{- range $r.ResourcesTable.Rows }}
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/{{ $r.Info.GitHash }}/values/{{ .Collector }}.yml">{{ .Collector }}</a>
+                  <span class="counts">{{ .Version }}</span>
+                </td>
+                <td class="align-left{{ if ne .Status "pass" }} fail{{ end }}">{{ .Status }}</td>
+                <td class="bar" style="--percent: {{ .AvgCPUUsagePercent }}%">{{ .AvgCPUUsage }}</td>
+                <td class="bar" style="--percent: {{ .AvgMemoryMiBPercent }}%">{{ .AvgMemoryMiB }}</td>
+                <td class="bar" style="--percent: {{ .MaxMemoryMiBPercent }}%">{{ .MaxMemoryMiB }}</td>
+                <td class="bar" style="--percent: {{ .NetworkBytesPerLogPercent }}%">{{ .NetworkBytesPerLog }}</td>
+                <td>{{ .Lost }}</td>
+              </tr>
+            {{- end }}
+            </tbody>
+          </table>
+        </div>
+      </details>
+
+      {{- if eq $i 0 }}
+        <h2>Methodology</h2>
+        <p>
+          Each collector runs on its own, with no other collectors on the Node.
+          All log generator Pods produce the same kind of JSON records,
+          see <a href="#log-format">log format</a> for details.
+        </p>
+        <p>
+          Every collector is limited to 1 CPU and 1 GiB of memory.
+          Configs are based on the official Helm chart values and may include tuning to improve collector performance.
+          The collector names in the tables link to the exact configs of each run.
+        </p>
+        <p>
+          Throughput is counted at the receiving end, not by the collectors themselves.
+          A collector is marked as failed when its container restarts or when logs are lost.
+          Its numbers still show what it reached before that.
+        </p>
+        <p>
+          The benchmark runs on a <span class="code">c2d-highcpu-8</span> virtual machine with a local SSD.
+          Apart from the log generator and the collector under test, the Node only runs
+          the benchmark components: log-verifier, VictoriaMetrics and Grafana.
+        </p>
+        <p>
+          Kubernetes log rotation settings are kept at their defaults:
+          maximum log file size is 10 MiB, with checks running every 10 seconds.
+        </p>
+        <p>
+          Send an updated collector config if you know how to speed it up by more than 10%
+          without introducing unusual production settings.
+        </p>
+
+        <h2>Transport config</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+            <tr>
+              <th class="align-left narrow">Collector</th>
+              <th>Protocol</th>
+              <th>Compression</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{- range $collector, $info := $.CollectorInfos }}
+              <tr>
+                <td class="align-left">
+                  <a href="https://github.com/VictoriaMetrics/log-collectors-benchmark/blob/{{ $r.Info.GitHash }}/values/{{ $collector }}.yml">{{ $collector }}</a>
+                </td>
+                <td>{{ $info.Protocol }}</td>
+                <td>{{ $info.Compression }}</td>
+              </tr>
+            {{- end }}
+            </tbody>
+          </table>
+        </div>
+
+        <details>
+          <summary>Log format of each collector</summary>
+            <div id="log-format"></div>
+            {{- range $.Samples }}
+              <h4>{{ .Collector }}</h4>
+              <pre>{{ .Data }}</pre>
+            {{- end }}
+        </details>
+
+        <h2>Previous runs</h2>
+      {{- end }}
+    {{- end }}
+</main>
+
+<script>
+    const sortedColByTable = {};
+
+    function sortTable(tableId, colNum) {
+        const table = document.getElementById(tableId);
+        const thead = table.querySelector("thead");
+        const tbody = table.querySelector("tbody");
+
+        const headers = Array.from(thead.children[0].children);
+        const rows = Array.from(tbody.rows);
+        if (sortedColByTable[tableId] === colNum) {
+            // Already selected and sorted, reverse rows.
+            rows.reverse();
+            const header = headers[colNum];
+            header.classList.toggle("sorted-asc");
+            header.classList.toggle("sorted-desc");
+        } else {
+            rows.sort((leftRow, rightRow) => {
+                const leftCol = leftRow.children[colNum];
+                const rightCol = rightRow.children[colNum];
+
+                const aPct = window.getComputedStyle(leftCol).getPropertyValue('--percent');
+                const bPct = window.getComputedStyle(rightCol).getPropertyValue('--percent');
+
+                // parseFloat stops at the '%' suffix on its own.
+                const a = Number.parseFloat(aPct);
+                const b = Number.parseFloat(bPct);
+
+                return a - b;
+            });
+
+            headers.forEach((el) => (el.classList.remove("sorted-asc", "sorted-desc")));
+            headers[colNum].classList.add("sorted-asc");
+        }
+
+        sortedColByTable[tableId] = colNum
+        rows.forEach((el) => tbody.appendChild(el))
+    }
+</script>
+</body>
+</html>

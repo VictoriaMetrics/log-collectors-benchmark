@@ -1,0 +1,19 @@
+{
+  "_msg": "Request processed successfully",
+  "_stream": "{collector=\"grafana-agent\",pod=\"log-generator-7d7546994b-sgqrv\"}",
+  "_time": "2026-08-10T17:38:35.121089019Z",
+  "collector": "grafana-agent",
+  "component": "notification-service",
+  "duration_ms": "705",
+  "filename": "/var/log/containers/log-generator-7d7546994b-sgqrv_log-generator_log-generator-53c6d5a877d762ec7f32bd346f87dcdf8734d3eddfa5a6fde69c15942ddc51f0.log",
+  "generated_at": "1786383515121049424",
+  "level": "DEBUG",
+  "method": "DELETE",
+  "namespace": "log-generator",
+  "node_name": "log-collectors-bench-control-plane",
+  "pod": "log-generator-7d7546994b-sgqrv",
+  "sequence_id": "1",
+  "status_code": "404",
+  "stream": "stdout",
+  "trace_id": "trace-a1b2c3d4"
+}

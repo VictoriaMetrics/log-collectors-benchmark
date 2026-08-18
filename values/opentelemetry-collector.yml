@@ -11,7 +11,7 @@ config:
     otlphttp:
       logs_endpoint: http://log-verifier.monitoring.svc.cluster.local.:8080/insert/opentelemetry/v1/logs
       headers:
-        VL-Extra-Fields: collector=opentelemetry
+        VL-Extra-Fields: collector=opentelemetry-collector
         VL-Stream-Fields: collector,k8s.pod.name
 
   extensions:
