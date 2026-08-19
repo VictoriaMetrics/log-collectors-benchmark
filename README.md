@@ -2,9 +2,6 @@
 
 A benchmark suite for comparing log collectors, with log delivery verification.
 
-Beyond performance numbers, this tool continuously verifies that every log record is delivered without losses.
-At VictoriaMetrics, we use it to ensure vlagent reliably delivers logs under any load.
-
 ## Results
 
 We measure collector performance periodically.
@@ -16,55 +13,13 @@ For the original, untuned baseline results, see the blog post:
 
 https://victoriametrics.com/blog/log-collectors-benchmark-2026/
 
-## Overview
-
-Tested collectors:
-
-- [VictoriaLogs Agent](https://docs.victoriametrics.com/victorialogs/vlagent/) (vlagent) v1.48.0
-- [Vector](https://vector.dev/) v0.53.0
-- [Promtail](https://grafana.com/docs/loki/latest/send-data/promtail/) v3.5.1
-- [Grafana Alloy](https://grafana.com/docs/alloy/latest/) v1.13.2
-- [Grafana Agent](https://grafana.com/docs/agent/latest/) v0.44.2
-- [Fluent Bit](https://fluentbit.io/) v4.2.3
-- [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) v0.146.1
-- [Filebeat](https://www.elastic.co/beats/filebeat) v9.3.1
-- [Fluentd](https://www.fluentd.org/) v1.19.1
-
-Runs in a local k8s cluster (using `kind`).
-
-What is measured:
-
-- CPU and memory usage per collector.
-- Throughput.
-- Missing logs.
-
-Collectors are configured to compress request bodies to reduce network traffic
-and better emulate production environments.
-Different collectors use different compression algorithms (gzip, snappy, zstd)
-and protocols (JSON, protobuf), which can impact performance.
-
-Configurations are based on official Helm chart defaults with
-minimal modifications required for the benchmark environment.
-We recommend keeping these settings as is:
-
-- Buffer sizes and queue depths.
-- Batch sizes and flush intervals.
-- Worker threads and parallelism settings.
-- Runtime settings such as garbage collection.
-
-But if changing one of them improves CPU, RAM or throughput by more than 10%, send a PR.
-See [Contributing](#contributing).
-
-All collectors have identical resource requests and limits (1 CPU, 1 GiB memory) for fair comparison
-and reduce the chance of CPU/RAM contention when running multiple collectors simultaneously.
-
-Since it's challenging to configure all collectors to use identical log formats,
-each collector may produce different output formats.
-
 ## How does it work?
 
-1. log-generator - generates JSON logs.
-2. Log collector - tails logs from log-generator Pods, ships to log-verifier.
+Runs in a local Kubernetes cluster (using `kind`).
+Measures CPU/memory usage, throughput and missing logs per collector.
+
+1. log-generator - generates JSON logs. See [Log format](https://victoriametrics.github.io/log-collectors-benchmark/#log-format) for details.
+2. Log collector - tails logs from log-generator Pods, ships them to log-verifier.
 3. log-verifier - receives logs directly from collectors, exposes delivery metrics.
 4. VictoriaMetrics - stores metrics; vmagent - collects CPU/RAM metrics of containers and metrics from log-verifier.
 5. Grafana - displays metrics and resource usage.
@@ -72,6 +27,9 @@ each collector may produce different output formats.
 Simplified diagram:
 
 <img src="how-does-it-work.svg" alt="how-does-it-work">
+
+See [Methodology](https://victoriametrics.github.io/log-collectors-benchmark/#methodology)
+on the results page for how collectors are configured and compared.
 
 ### Verification
 
@@ -110,44 +68,40 @@ All exposed metrics:
 
 These metrics are scraped by vmagent and visualized in Grafana.
 
-## Prerequisites
+## Reproduce locally
 
-- Docker
-- kubectl
-- [`kind`](https://kind.sigs.k8s.io/)
-- helm
-- make
+These binaries expected to be installed:
+docker, kubectl, [`kind`](https://kind.sigs.k8s.io/), helm, make, go.
 
-It is recommended to run this on a machine with at least 12 CPUs, 12 GiB RAM, and 200 GiB of disk space.
+Ports `3000` (Grafana) and `8428` (VictoriaMetrics) must be free on the host.
 
-Ports `3000` (Grafana) and `8428` (VictoriaMetrics) must be free on the host -
-`kind` maps them from the cluster when it is created.
-
-If you have insufficient resources, follow the [Advanced Setup](#advanced-setup) steps to run only a subset of collectors.
 Each collector requires at least 1 CPU and 1 GiB RAM to operate.
 
-## Quick Start
+There are two ways to run this benchmark:
 
-Test all collectors:
+- Manual (recommended for a first look): deploys the whole stack at once, without producing any reports.
+  Useful for debugging a collector while watching metrics live in Grafana:
+  ```sh
+  make bench-up-all
+  ```
+  Note: running all collectors at once requires a machine with at least 12 CPUs, 12 GiB RAM, and 200 GiB of disk space. <br>
+  See [Manual setup](#manual-setup) if you then want to tune or deploy a single collector.
 
-```sh
-make bench-up-all
-```
+- Automated: runs every collector one-by-one to measure maximum throughput and resource usage,
+  writes reports to `results/<date>/`, and renders the results page.
+  This is how [the published results](https://victoriametrics.github.io/log-collectors-benchmark/) are produced.
+  ```sh
+  go run ./bench-runner
+  go run ./bench-runner render > index.html
+  ```
+  Note: a full run takes ~10 hours in total. <br>
+  See [Automated runs](#automated-runs) for details.
 
-Grafana is exposed on the host, find `Log Collectors Benchmark` dashboard at
-http://localhost:3000/d/log_collectors_benchmark/log-collectors-benchmark.
+## Manual setup
 
-VictoriaMetrics is available at http://localhost:8428.
-
-After the test completes (all collectors started losing logs), stop the generator:
-
-```sh
-make bench-down-generator
-```
-
-## Advanced Setup
-
-Follow these steps in order for each benchmark run.
+Use these steps to deploy a single collector, tune its config, and
+watch metrics live in Grafana.
+`bench-up-all` runs steps 2-4 with default parameters for every collector at once.
 
 ### 1. (Optional) Switch to VictoriaLogs as the backend
 
@@ -182,15 +136,15 @@ make bench-up-collectors
 To deploy a single collector instead:
 
 ```sh
-make bench-up-vlagent        # VictoriaLogs Agent
-make bench-up-vector         # Vector
-make bench-up-promtail       # Promtail
-make bench-up-alloy          # Grafana Alloy
-make bench-up-grafana-agent  # Grafana Agent
-make bench-up-fluent-bit     # Fluent Bit
-make bench-up-otel-collector # OpenTelemetry Collector
-make bench-up-filebeat       # Filebeat
-make bench-up-fluentd        # Fluentd
+make bench-up-vlagent                 # VictoriaLogs Agent
+make bench-up-vector                  # Vector
+make bench-up-promtail                # Promtail
+make bench-up-alloy                   # Grafana Alloy
+make bench-up-grafana-agent           # Grafana Agent
+make bench-up-fluent-bit              # Fluent Bit
+make bench-up-opentelemetry-collector # OpenTelemetry Collector
+make bench-up-filebeat                # Filebeat
+make bench-up-fluentd                 # Fluentd
 ```
 
 ### 4. Start log generator
@@ -255,6 +209,35 @@ This command deletes the `kind` cluster and all deployed resources, including th
 ```sh
 make bench-down-all
 ```
+
+## Automated runs
+
+`bench-runner` automates the steps from [Manual setup](#manual-setup):
+it deploys each collector one at a time, runs it through maximum throughput and resource usage benchmark cases,
+and writes one JSON report per collector per case:
+
+```sh
+go run ./bench-runner
+```
+
+Results are written to `results/<date>/`.
+If a report for a collector already exists for today, that collector is
+skipped - delete the file to force a re-run.
+
+To run a subset of collectors:
+
+```sh
+go run ./bench-runner -collectors=vlagent,vector
+```
+
+To render the results page from everything in `results/`:
+
+```sh
+go run ./bench-runner render > index.html
+```
+
+This is the same page published at
+https://victoriametrics.github.io/log-collectors-benchmark/
 
 ## Contributing
 
