@@ -7,6 +7,13 @@ At VictoriaMetrics, we use it to ensure vlagent reliably delivers logs under any
 
 ## Results
 
+We measure collector performance periodically.
+Results from the latest and previous runs are published here:
+
+https://victoriametrics.github.io/log-collectors-benchmark/
+
+For the original, untuned baseline results, see the blog post:
+
 https://victoriametrics.com/blog/log-collectors-benchmark-2026/
 
 ## Overview
