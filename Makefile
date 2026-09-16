@@ -52,13 +52,13 @@ bench-down-generator:
 	$(KUBECTL) scale -n log-generator deploy/log-generator --replicas 0
 
 bench-up-vlagent:
-	$(HELM) upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --version 0.2.14 --namespace collectors --values ./values/vlagent.yml
+	$(HELM) upgrade --install --wait --create-namespace vlagent vm/victoria-logs-collector --version 0.3.7 --namespace collectors --values ./values/vlagent.yml
 
 bench-down-vlagent:
 	$(HELM) uninstall vlagent --namespace collectors --ignore-not-found
 
 bench-up-vector:
-	$(HELM) upgrade --install --wait --create-namespace vector vector/vector --version 0.50.0 --namespace collectors --values ./values/vector.yml
+	$(HELM) upgrade --install --wait --create-namespace vector vector/vector --version 0.58.0 --namespace collectors --values ./values/vector.yml
 
 bench-down-vector:
 	$(HELM) uninstall vector --namespace collectors --ignore-not-found
@@ -71,7 +71,7 @@ bench-down-promtail:
 	$(HELM) uninstall promtail --namespace collectors --ignore-not-found
 
 bench-up-alloy:
-	$(HELM) upgrade --install --wait --create-namespace alloy grafana/alloy --version 1.6.1 --namespace collectors --values ./values/alloy.yml
+	$(HELM) upgrade --install --wait --create-namespace alloy grafana/alloy --version 1.12.1 --namespace collectors --values ./values/alloy.yml
 
 bench-down-alloy:
 	$(HELM) uninstall alloy --namespace collectors --ignore-not-found
@@ -83,19 +83,19 @@ bench-down-grafana-agent:
 	$(HELM) uninstall grafana-agent --namespace collectors --ignore-not-found
 
 bench-up-fluent-bit:
-	$(HELM) upgrade --install --wait --create-namespace fluent-bit fluent/fluent-bit --version 0.56.0 --namespace collectors --values ./values/fluent-bit.yml
+	$(HELM) upgrade --install --wait --create-namespace fluent-bit fluent/fluent-bit --version 0.57.9 --namespace collectors --values ./values/fluent-bit.yml
 
 bench-down-fluent-bit:
 	$(HELM) uninstall fluent-bit --namespace collectors --ignore-not-found
 
 bench-up-opentelemetry-collector:
-	$(HELM) upgrade --install --wait --create-namespace opentelemetry-collector open-telemetry/opentelemetry-collector --version 0.146.1 --namespace collectors --values ./values/opentelemetry-collector.yml
+	$(HELM) upgrade --install --wait --create-namespace opentelemetry-collector open-telemetry/opentelemetry-collector --version 0.169.0 --namespace collectors --values ./values/opentelemetry-collector.yml
 
 bench-down-opentelemetry-collector:
 	$(HELM) uninstall opentelemetry-collector --namespace collectors --ignore-not-found
 
 bench-up-filebeat:
-	$(HELM) upgrade --install --wait --create-namespace filebeat elastic/filebeat --version 8.5.1 --set imageTag=9.3.1 --namespace collectors --values ./values/filebeat.yml
+	$(HELM) upgrade --install --wait --create-namespace filebeat elastic/filebeat --version 8.5.1 --set imageTag=9.5.3 --namespace collectors --values ./values/filebeat.yml
 
 bench-down-filebeat:
 	$(HELM) uninstall filebeat --namespace collectors --ignore-not-found
