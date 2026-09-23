@@ -1,0 +1,11 @@
+{
+  "Collector": "grafana-agent",
+  "Version": "v0.44.2",
+  "Success": true,
+  "Throughput": 31407,
+  "AvgCPUUsage": 0.43021569287037026,
+  "MaxMemory": 70565888,
+  "AvgMemory": 61413239,
+  "NetworkBytesPerLog": 58,
+  "Lost": 0
+}

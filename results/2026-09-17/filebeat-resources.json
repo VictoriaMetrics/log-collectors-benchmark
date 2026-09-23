@@ -1,0 +1,11 @@
+{
+  "Collector": "filebeat",
+  "Version": "v9.5.3",
+  "Success": true,
+  "Throughput": 10506,
+  "AvgCPUUsage": 0.5296419707877961,
+  "MaxMemory": 139665408,
+  "AvgMemory": 93909462,
+  "NetworkBytesPerLog": 191,
+  "Lost": 9361
+}

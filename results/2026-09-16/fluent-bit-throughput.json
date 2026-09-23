@@ -1,0 +1,12 @@
+{
+  "Collector": "fluent-bit",
+  "Version": "v4.2.3",
+  "Success": false,
+  "FailReason": "OOMKilled",
+  "Throughput": 39734,
+  "AvgCPUUsage": 0.431118436419753,
+  "MaxMemory": 692445184,
+  "AvgMemory": 127622030,
+  "NetworkBytesPerLog": 43,
+  "Lost": 1052768
+}

@@ -1,0 +1,11 @@
+{
+  "Collector": "vlagent",
+  "Version": "v1.48.0",
+  "Success": true,
+  "Throughput": 10204,
+  "AvgCPUUsage": 0.0477886768975766,
+  "MaxMemory": 46399488,
+  "AvgMemory": 28939180,
+  "NetworkBytesPerLog": 33,
+  "Lost": 0
+}

@@ -1,0 +1,11 @@
+{
+  "Collector": "vector",
+  "Version": "v0.58.0",
+  "Success": true,
+  "Throughput": 32057,
+  "AvgCPUUsage": 0.44311254166666675,
+  "MaxMemory": 122200064,
+  "AvgMemory": 97288960,
+  "NetworkBytesPerLog": 38,
+  "Lost": 0
+}

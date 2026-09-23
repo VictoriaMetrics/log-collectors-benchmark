@@ -1,0 +1,11 @@
+{
+  "Collector": "promtail",
+  "Version": "v3.5.1",
+  "Success": true,
+  "Throughput": 27589,
+  "AvgCPUUsage": 0.5256332144636015,
+  "MaxMemory": 57225216,
+  "AvgMemory": 53622374,
+  "NetworkBytesPerLog": 61,
+  "Lost": 0
+}

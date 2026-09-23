@@ -1,0 +1,11 @@
+{
+  "Collector": "fluentd",
+  "Version": "v1.19",
+  "Success": true,
+  "Throughput": 7037,
+  "AvgCPUUsage": 0.45948135511695903,
+  "MaxMemory": 405037056,
+  "AvgMemory": 243061964,
+  "NetworkBytesPerLog": 34,
+  "Lost": 0
+}

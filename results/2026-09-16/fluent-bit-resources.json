@@ -1,0 +1,11 @@
+{
+  "Collector": "fluent-bit",
+  "Version": "v4.2.3",
+  "Success": true,
+  "Throughput": 10983,
+  "AvgCPUUsage": 0.21311020351239676,
+  "MaxMemory": 138854400,
+  "AvgMemory": 67471326,
+  "NetworkBytesPerLog": 39,
+  "Lost": 1
+}

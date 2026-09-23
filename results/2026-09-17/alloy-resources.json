@@ -1,0 +1,11 @@
+{
+  "Collector": "alloy",
+  "Version": "v1.19.2",
+  "Success": true,
+  "Throughput": 10094,
+  "AvgCPUUsage": 0.23812558735200356,
+  "MaxMemory": 89051136,
+  "AvgMemory": 85348352,
+  "NetworkBytesPerLog": 95,
+  "Lost": 0
+}
