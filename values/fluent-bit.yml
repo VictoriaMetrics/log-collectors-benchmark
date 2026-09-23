@@ -19,6 +19,7 @@ config:
   inputs: |
     [INPUT]
         Name tail
+        Mem_Buf_Limit 512MB
         Path /var/log/containers/*log-generator*.log
         multiline.parser docker, cri
         Tag kube.*
